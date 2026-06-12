@@ -1,107 +1,79 @@
-# CLAUDE.md — Mishqat's Portfolio Site
+# CLAUDE.md — Mishqat's Portfolio (v2, cosmic rebuild)
 
 ## What this is
-Personal portfolio for Ahmed Mishqat, a Mechanical Engineering undergraduate at the
-University of Manchester. The site is a static frontend hosted on GitHub Pages.
-No build tools, no frameworks — plain HTML, CSS, and JavaScript only.
+Personal portfolio for Ahmed Mishqat — mechanical engineering undergraduate at the
+University of Manchester, but explicitly NOT just an engineer. Reads Cioran and Donna
+Tartt, writes prose-poetry, listens to shoegaze, loves Minecraft, thinks in analogies.
+The site must feel like a person, not a CV.
+
+This is a from-scratch rebuild (v2). The previous version is gone — there is no existing
+HTML/CSS/JS to match or preserve. Build the new vision fresh from the creative brief.
+
+Static site for GitHub Pages. No build step, no compiled frameworks. Vanilla HTML/CSS/JS
+plus WebGL (Three.js via CDN is acceptable).
+
+---
+
+## Aesthetic
+JWST cosmic sublime + Minecraft pixel-craft + literary melancholy. Dark theme only —
+the site is set in space. Rich but never garish.
 
 ---
 
 ## Repo structure
 ```
-mishi.github.io/
-├── index.html           ← single-page app, all sections live here
+portfolio-mk2/
+├── index.html              ← single-page app (pages are states, not reloads)
+├── css/                    ← stylesheets
+├── js/                     ← scripts
 ├── assets/
-│   ├── images/          ← photos and project images
-│   ├── cv/              ← CV PDF
-│   ├── code/            ← Python scripts and project files
-│   └── vids/            ← project videos
+│   ├── images/             ← me.webp (hero portrait), project1.jpg ... project7_2.jpeg
+│   ├── cv/                 ← AhmedMishqat_CV_General.pdf
+│   ├── code/               ← Python scripts, project report PDFs
+│   ├── files/              ← project6_calc.pdf, project6/7 presentation PDFs
+│   └── vids/               ← GearPrixVid.mp4
+├── CLAUDE.md
+├── project-descriptions.md ← EXACT project content — use verbatim, do not invent
+└── projects-content.md     ← additional project content reference
 ```
 
-If new project assets are added (images, PDFs, videos), they go in the relevant
-subfolder under assets/. Never place asset files in the root.
+Image naming: `project1.jpg` through `project7_2.jpeg` map to projects 1-7. Some projects
+have multiple images (e.g. project5.jpg + project5_2.jpg, project6_1.jpeg + project6_2.webp).
+The hero portrait is `assets/images/me.webp`.
+
+Ignore `unsortedthings/`, `stl/`, and `tempCodeRunnerFile.python` — not used on the site.
+The STL/glTF 3D viewers are deliberately deferred to a later task; do not implement them now.
 
 ---
 
-## Existing projects (in order on the page)
-1. Autonomous Poker Dealer Robotic Arm
-2. DMT Gravity-Propelled Car
-3. 3-Axis CNC Positioning System
-4. Hack-A-Bot: Toxic Waste Disposal Rover (24-hour hackathon)
-5. Gear-Prix: Drivetrain Design Challenge
-
-New projects should follow the same modal card pattern as these existing five.
-
----
-
-## Design rules — DO NOT deviate from these
-
-- Match the existing visual style exactly unless explicitly told otherwise
-- Do not introduce new fonts — use whatever is already declared in the CSS
-- Do not change the colour palette unless explicitly instructed
-- Do not alter the nav or header under any circumstances
-- Do not alter the footer under any circumstances
-- Do not alter the CV modal or its open/close logic
-- Do not remove or reorder existing projects unless explicitly asked
-- Preserve all existing interactive 3D model embeds (they use a custom viewer)
-- Preserve all existing modal open/close logic — new projects must use the same pattern
-- Keep all file paths relative (e.g. assets/images/foo.jpg not /assets/images/foo.jpg)
-  because the site is hosted in a subdirectory on GitHub Pages
+## Hard technical rules
+- ALL asset and internal paths must be RELATIVE (e.g. `assets/images/me.webp`, never
+  `/assets/...`). The site is hosted in a GitHub Pages subdirectory and absolute paths break.
+- Performance is a hard requirement. WebGL/shader work must be GPU-light and degrade
+  gracefully on weak hardware. Respect `prefers-reduced-motion`.
+- Mobile must not break — simplify heavy effects on touch devices rather than shipping
+  something broken. The desktop experience is primary.
+- "Pages" (home, projects) are states within one single-page app — transitions between
+  them are continuous WebGL animations, never real page reloads. Browser back must still
+  work via history state.
 
 ---
 
-## How to add a new project
-
-1. Add a project card in the "Selected Projects" section of index.html
-   - Follow the exact same HTML structure as the existing project cards
-   - Use the next available project ID (e.g. project6, project7)
-   - Include: title, short subtitle, one-line description
-   - Link it to its modal using the same href="#projectN" pattern
-
-2. Add the corresponding modal at the bottom of index.html
-   - Follow the exact same modal HTML structure as existing ones
-   - Include: title, tags/tech stack, role, description, reflection, any media
-   - Use id="projectN" matching the card link
-
-3. Place any images for the project in assets/images/
-4. Place any PDFs in assets/code/ (yes, PDFs go here — that's the existing convention)
-5. Place any videos in assets/vids/
+## Content rules
+- Project write-ups come VERBATIM from `project-descriptions.md`. Do not invent, embellish,
+  or rewrite project details to sound more polished. The honest, reflective tone — including
+  acknowledgement of failures and limitations — is intentional and must be preserved.
+- The three personal quotes (hero statement, Donna Tartt line, the silence line) are core
+  to Mishqat's identity and must appear, presented per the creative brief.
 
 ---
 
-## GitHub Pages deployment notes
-
-- There is no build step. All changes go live on push to main.
-- The site lives at: https://mishqat.github.io/mishi.github.io/
-- Because it's in a subdirectory repo, ALL internal links and asset paths must be
-  relative. Never use absolute paths starting with /
-- After making changes, the deploy command is simply:
-  git add . && git commit -m "your message" && git push
-
----
-
-## What you are allowed to do without being asked
-- Fix broken links
-- Fix typos
-- Correct indentation and formatting in HTML/CSS
-- Ensure new additions are mobile responsive
-
-## What you must always ask before doing
-- Changing any colours, fonts, or visual design
-- Restructuring the page layout
-- Removing or reordering existing content
-- Touching the nav, footer, or CV modal
-- Adding any new JavaScript libraries or external dependencies
-
----
-
-## Tone of the site
-Engineering-focused, honest, and reflective. Project write-ups acknowledge failure and
-limitations openly — this is intentional and should be preserved. Do not rewrite
-project descriptions to sound more polished or marketing-y unless explicitly asked.
-
----
+## Working approach
+- Build in stages (background -> home -> transition -> projects -> polish). Check in after
+  each stage with a short summary and anything you want input on, rather than doing
+  everything silently.
+- Commit after each working stage so there are restore points.
+- Prioritise a working, performant foundation over premature polish.
 
 ## Commit message style
-Lowercase, concise, imperative tense.
-Examples: `add imechE robot project`, `fix broken pdf link in project3`, `update bio text`
+Lowercase, concise, imperative. e.g. `add cosmic background shader`, `build pisces nav spine`
