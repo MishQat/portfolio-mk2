@@ -1,8 +1,7 @@
-// portrait.js — the likeness, held in a JWST primary-mirror hexagon.
-// The image is clipped to a flat-top hexagon (CSS), seamed into segments like
-// the telescope's 18 gold tiles, and tilts a few degrees toward the pointer so
-// it reads as a polished surface catching the room. Reduced-motion / touch get
-// the hexagon, no tilt.
+// portrait.js — the likeness: a clean professional headshot on a rounded card
+// (shape + edge glow are pure CSS). It tilts a few degrees toward the pointer
+// so it sits in space as a near, physical object. Reduced-motion / touch get
+// the still card, no tilt.
 
 export function initPortrait({ env, onLayout }) {
   const fig = document.getElementById('portrait-fig');

@@ -462,70 +462,45 @@ html.shot #warp { display: none; }
 }
 
 /* ==========================================================================
-   THE PORTRAIT — held in a JWST primary-mirror hexagon, gold-rimmed, seamed
-   into segments, catching a slow sheen. Tilt is applied inline by portrait.js.
+   THE PORTRAIT — a clean professional headshot on a softly rounded card.
+   No hexagon, no seams, no sheen — the photo is shown plainly. The Circlet of
+   Pisces (constellation.js) rings it; a quiet edge glow seats it in the cosmos;
+   portrait.js adds a gentle tilt toward the pointer.
    ========================================================================== */
 
 .portrait-mirror {
-  --hex: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
   position: relative;
-  width: clamp(240px, 32vw, 420px);
-  aspect-ratio: 1 / 0.866;
-  clip-path: var(--hex);
-  background:
-    linear-gradient(150deg, #f3d49a 0%, #b98a44 28%, #6c4f28 60%, #e8c28a 100%);
+  width: clamp(280px, 36vw, 500px);
+  aspect-ratio: 3 / 2;            /* matches the headshot — no crop over the face */
+  border-radius: 20px;
+  overflow: hidden;
   transform: perspective(900px);
   transform-style: preserve-3d;
-  transition: filter 0.6s var(--ease-drift);
-  filter: drop-shadow(0 22px 48px rgba(2, 1, 8, 0.6));
+  /* a soft seat in the cosmos: gentle lift + faint cool halo, nothing loud */
+  box-shadow:
+    0 26px 60px rgba(2, 1, 8, 0.58),
+    0 0 54px rgba(126, 116, 196, 0.18);
 }
 
 .portrait-mirror img {
-  position: absolute;
-  inset: 3px;
-  width: calc(100% - 6px);
-  height: calc(100% - 6px);
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  object-position: 50% 30%;
-  clip-path: var(--hex);
-  filter: saturate(0.92) contrast(1.02);
+  object-position: 50% 35%;
 }
 
-/* segment seams — faint gold honeycomb suggesting the 18-tile array */
-.portrait-seams {
-  position: absolute;
-  inset: 3px;
-  clip-path: var(--hex);
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23e8c28a' stroke-width='0.7' stroke-opacity='0.28'%3E%3Cpolygon points='37.5,21.65 62.5,21.65 75,43.3 62.5,64.95 37.5,64.95 25,43.3'/%3E%3Cline x1='50' y1='0' x2='50' y2='21.65'/%3E%3Cline x1='100' y1='43.3' x2='75' y2='43.3'/%3E%3Cline x1='50' y1='86.6' x2='50' y2='64.95'/%3E%3Cline x1='0' y1='43.3' x2='25' y2='43.3'/%3E%3Cline x1='25' y1='0' x2='37.5' y2='21.65'/%3E%3Cline x1='75' y1='0' x2='62.5' y2='21.65'/%3E%3Cline x1='25' y1='86.6' x2='37.5' y2='64.95'/%3E%3Cline x1='75' y1='86.6' x2='62.5' y2='64.95'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 100% 100%;
-  mix-blend-mode: screen;
-  opacity: 0.85;
-}
-
-/* a slow specular sheen sweeping the mirror */
-.portrait-sheen {
+/* hairline light edge + the faintest corner vignette so the card doesn't read
+   as a hard rectangle — kept off the face, never stylising the photo */
+.portrait-mirror::after {
+  content: '';
   position: absolute;
   inset: 0;
-  clip-path: var(--hex);
+  border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(120deg,
-    transparent 38%,
-    rgba(255, 248, 230, 0.16) 48%,
-    rgba(255, 255, 255, 0.30) 50%,
-    rgba(255, 248, 230, 0.16) 52%,
-    transparent 62%);
-  background-size: 280% 280%;
-  mix-blend-mode: screen;
-  animation: sheen-sweep 9s ease-in-out infinite;
-}
-
-@keyframes sheen-sweep {
-  0%, 100% { background-position: 130% 0%; opacity: 0; }
-  45%      { opacity: 1; }
-  55%      { opacity: 1; }
-  50%      { background-position: -30% 100%; }
-  60%, 100%{ background-position: -30% 100%; opacity: 0; }
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 238, 255, 0.16),
+    inset 0 0 44px rgba(6, 3, 16, 0.32);
 }
 
 /* ==========================================================================
