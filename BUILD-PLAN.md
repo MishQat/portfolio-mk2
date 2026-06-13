@@ -76,7 +76,7 @@ after. Reduced-motion takes a short JS opacity crossfade (`quickFade`, driven in
 global reduced-motion transition override can't flatten it). Debug hooks: `?debug&warp=0.5`
 freezes one frame; `?debug&fly=projects|home` triggers a real flight.
 
-## STAGE 4 — Projects page (depth-fly galaxy)  [NEXT]
+## STAGE 4 — Projects page (depth-fly galaxy)  [COMPLETE]
 Projects as luminous nodes at varying depths in space. User gently flies THROUGH them.
 **Principle: motion for delight, stillness for reading.**
 
@@ -94,7 +94,21 @@ Projects as luminous nodes at varying depths in space. User gently flies THROUGH
 - DEFER the STL/glTF 3D model viewers — that's a separate later task. Ignore the stl/ folder
   for now.
 
-## STAGE 5 — Liquid glass polish + performance/mobile pass
+**Built (js/projects.js + js/projects-data.js):** CSS-3D depth field (`.galaxy`, `perspective`)
+of seven luminous porthole nodes (project image inside an accent-glow disc). A continuous
+`focus` value (rAF-eased) drifts via wheel/arrows/PageUp-Down/Home-End/swipe/pager-dots; the
+focused node centres, enlarges and shows its title, ahead nodes recede + blur + dim, passed
+nodes swell-and-vanish (fly-through). The cosmos glow is coupled to focus. Clicking the
+focused node blooms `#detail` open from the node's centre — a still, full-bleed reader (soft
+cosmic backdrop, NOT a modal box), all content verbatim with `**bold**`/`*italic*` preserved,
+images + video (`preload=none`) + PDF/`.py` docs, built on open (lazy). Persistent home: the
+header chip (z-index raised to 60, above the detail's z40) + an in-reader "back to the field".
+Group 28 report → Project 3. 3D viewers deferred (P2 models described in text only).
+Reduced-motion: instant focus steps + instant reader (no rAF, no transitions). Mobile: nodes
+shrink, touch-swipe steps, single-column reader. Debug: `?debug&project=N` focuses a node,
+`?debug&open=N` opens its detail (pair with `#/projects`). All paths CDP-verified.
+
+## STAGE 5 — Liquid glass polish + performance/mobile pass  [NEXT]
 - Proper iOS 26-style **liquid glass** buttons (Projects/Home nav + any controls) — real
   backdrop refraction, dynamic specular highlights responding to cursor position, soft inner
   glow, edge light, content subtly distorting through the glass. Not a flat blur fake.
