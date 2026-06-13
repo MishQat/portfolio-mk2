@@ -3,37 +3,38 @@
 // on fine pointers with motion allowed; touch and reduced-motion keep the
 // native cursor and skip the whole thing.
 
-// 16x16 pixel grid. Tip is top-right; that corner is the pointer hotspot.
-//   l blade highlight · b blade body · d blade shadow
-//   g guard (dark netherite) · G guard mid
-//   h handle · H handle highlight
+// 16x16 grid sampled directly from the in-game netherite_sword sprite
+// (assets/images/Netherite_Sword.webp). Tip is top-right; the blade trails
+// down to the handle at bottom-left.
+//   L light highlight · M mid grey · C cool grey-purple · P netherite purple
+//   D dark purple-brown · K near-black outline · h/H handle browns
 const SWORD = [
-  '..............l.',
-  '.............lb.',
-  '............lbd.',
-  '...........lbd..',
-  '..........lbd...',
-  '.........lbd....',
-  '........lbd.....',
-  '.......lbd......',
-  '......lbd.......',
-  '....g.lb........',
-  '...gGgbd........',
-  '....gGg.........',
-  '.....hH.........',
-  '....hH..........',
-  '...hH...........',
-  '..hh............',
+  '.............PPP',
+  '............PLLK',
+  '...........PLMLK',
+  '..........PLCLK.',
+  '.........PMCMK..',
+  '........PCCCK...',
+  '..PP...PCDhK....',
+  '..PCP.PCDhK.....',
+  '...PMPhDhK......',
+  '...PMMDhK.......',
+  '....PCCK........',
+  '...DhKhCK.......',
+  '..DHK.KKDK......',
+  'PPPK....KK......',
+  'PDK.............',
+  'KKK.............',
 ];
 
 const PAL = {
-  l: '#9b968d', b: '#5d5952', d: '#34302b',
-  g: '#241f1b', G: '#46403a',
-  h: '#4a3526', H: '#6f4f37',
+  L: '#8a8089', M: '#6f6770', C: '#52454f',
+  P: '#4a2940', D: '#2e2024', K: '#201012',
+  h: '#5d3936', H: '#764944',
 };
 
-const CELL = 2;            // px per sprite pixel → 32px sword
-const TIP = { x: 14, y: 0 }; // hotspot cell (top-right of blade)
+const CELL = 2;             // px per sprite pixel → 32px sword
+const TIP = { x: 15, y: 0 }; // hotspot cell (the blade tip, top-right)
 
 // magenta ember palette — brand magenta through hot pink to a pale spark
 const EMBER_COLORS = ['#c9356f', '#8e2160', '#e85aa0', '#f4b8d4', '#a8276b'];

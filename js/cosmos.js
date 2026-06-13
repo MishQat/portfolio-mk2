@@ -234,132 +234,6 @@ export function makeGalaxyTexture(size, rng, { arms = 2, squash = 0.55, tilt = 0
   return tex;
 }
 
-// Pillars of Creation homage: craggy dark columns (normal blending, occludes
-// stars) plus a separate rim-light layer (additive) offset toward the star
-// that "illuminates" them from the upper-left.
-export function makePillarsTextures(size, rng) {
-  const cols = [
-    { x: size * 0.30, top: size * 0.16, w: size * 0.125 },
-    { x: size * 0.56, top: size * 0.32, w: size * 0.095 },
-    { x: size * 0.78, top: size * 0.46, w: size * 0.07 },
-  ];
-
-  // build the blob skeleton once so dark + lit layers share one shape
-  const blobs = [];
-  for (const col of cols) {
-    const steps = 38;
-    for (let i = 0; i < steps; i++) {
-      const t = i / (steps - 1);
-      const y = col.top + t * (size * 1.06 - col.top);
-      const wob = Math.sin(t * 7.5 + col.x * 0.13) * col.w * 0.28;
-      const x = col.x + wob + (rng() - 0.5) * col.w * 0.2;
-      const r = col.w * (0.52 + t * 0.85) * (0.82 + rng() * 0.36);
-      blobs.push({ x, y, r, t });
-    }
-    // craggy crown fingers
-    for (let k = 0; k < 7; k++) {
-      blobs.push({
-        x: col.x + (rng() - 0.5) * col.w * 1.5,
-        y: col.top - rng() * col.w * 1.1,
-        r: col.w * (0.16 + rng() * 0.3),
-        t: 0,
-      });
-    }
-  }
-
-  function maskFades(g) {
-    // dissolve toward bottom and sides so the sprite has no hard edges
-    g.globalCompositeOperation = 'destination-in';
-    let m = g.createLinearGradient(0, 0, 0, size);
-    m.addColorStop(0, 'rgba(255,255,255,1)');
-    m.addColorStop(0.72, 'rgba(255,255,255,0.9)');
-    m.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = m;
-    g.fillRect(0, 0, size, size);
-    m = g.createLinearGradient(0, 0, size, 0);
-    m.addColorStop(0, 'rgba(255,255,255,0)');
-    m.addColorStop(0.16, 'rgba(255,255,255,1)');
-    m.addColorStop(0.86, 'rgba(255,255,255,1)');
-    m.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = m;
-    g.fillRect(0, 0, size, size);
-    g.globalCompositeOperation = 'source-over';
-  }
-
-  // dark layer
-  const darkC = document.createElement('canvas');
-  darkC.width = darkC.height = size;
-  const dg = darkC.getContext('2d');
-  for (const b of blobs) {
-    const grad = dg.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-    grad.addColorStop(0, 'rgba(7,3,16,1)');
-    grad.addColorStop(0.72, 'rgba(7,3,16,0.92)');
-    grad.addColorStop(1, 'rgba(7,3,16,0)');
-    dg.fillStyle = grad;
-    dg.beginPath(); dg.arc(b.x, b.y, b.r, 0, Math.PI * 2); dg.fill();
-  }
-  // erosion bites for cragginess
-  dg.globalCompositeOperation = 'destination-out';
-  for (let i = 0; i < 70; i++) {
-    const b = blobs[Math.floor(rng() * blobs.length)];
-    const ang = rng() * Math.PI * 2;
-    const x = b.x + Math.cos(ang) * b.r * (0.8 + rng() * 0.4);
-    const y = b.y + Math.sin(ang) * b.r * (0.8 + rng() * 0.4);
-    const r = b.r * (0.15 + rng() * 0.3);
-    const grad = dg.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, 'rgba(0,0,0,0.8)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    dg.fillStyle = grad;
-    dg.beginPath(); dg.arc(x, y, r, 0, Math.PI * 2); dg.fill();
-  }
-  dg.globalCompositeOperation = 'source-over';
-  maskFades(dg);
-
-  // rim-light layer: explicit bright crescents painted on each blob's edge
-  // facing the light (upper-left), strongest near the crowns
-  const litC = document.createElement('canvas');
-  litC.width = litC.height = size;
-  const lg = litC.getContext('2d');
-  const lightAng = Math.atan2(-1, -0.85); // light from upper-left
-  for (const b of blobs) {
-    const strength = 1 - b.t * 0.75; // crowns catch the most light
-    const ex = b.x + Math.cos(lightAng) * b.r * 0.78;
-    const ey = b.y + Math.sin(lightAng) * b.r * 0.78;
-    const rr = b.r * 0.42;
-    const grad = lg.createRadialGradient(ex, ey, 0, ex, ey, rr);
-    grad.addColorStop(0, `rgba(255,214,160,${0.5 * strength})`);
-    grad.addColorStop(0.6, `rgba(255,190,140,${0.26 * strength})`);
-    grad.addColorStop(1, 'rgba(255,190,140,0)');
-    lg.fillStyle = grad;
-    lg.beginPath(); lg.arc(ex, ey, rr, 0, Math.PI * 2); lg.fill();
-  }
-  // carve the rim back so light hugs the silhouette edge
-  lg.globalCompositeOperation = 'destination-out';
-  for (const b of blobs) {
-    const grad = lg.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 0.8);
-    grad.addColorStop(0, 'rgba(0,0,0,0.95)');
-    grad.addColorStop(0.8, 'rgba(0,0,0,0.6)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    lg.fillStyle = grad;
-    lg.beginPath(); lg.arc(b.x, b.y, b.r * 0.8, 0, Math.PI * 2); lg.fill();
-  }
-  lg.globalCompositeOperation = 'source-over';
-  // soft halo over the crowns
-  for (const col of cols) {
-    const grad = lg.createRadialGradient(col.x, col.top, 0, col.x, col.top, col.w * 2.2);
-    grad.addColorStop(0, 'rgba(255,222,170,0.3)');
-    grad.addColorStop(1, 'rgba(255,222,170,0)');
-    lg.fillStyle = grad;
-    lg.beginPath(); lg.arc(col.x, col.top, col.w * 2.2, 0, Math.PI * 2); lg.fill();
-  }
-  maskFades(lg);
-
-  const darkTex = new THREE.CanvasTexture(darkC);
-  const litTex = new THREE.CanvasTexture(litC);
-  darkTex.colorSpace = litTex.colorSpace = THREE.SRGBColorSpace;
-  return { darkTex, litTex };
-}
-
 /* ----------------------------------------------------------------- shaders */
 
 const starVertex = /* glsl */`
@@ -666,28 +540,46 @@ export function createCosmos({ canvas, env }) {
     addFeature(gal2, { pos: [-285, -120, -440], scale: [105, 105], opacity: 0.9, spin: -0.006, minTier: 1 });
     addFeature(gal3, { pos: [-300, -15, -455], scale: [52, 52], opacity: 0.6, minTier: 2 });
 
-    // pillars of creation, lower-right midground, lit from upper-left.
-    // bright nebula backdrop first — the dark columns silhouette against it.
-    const { darkTex, litTex } = makePillarsTextures(512, rng);
-    const backTex = makeNebulaTexture(256, rng, 90);
-    const emitTexA = makeNebulaTexture(256, rng, 85);
-    const emitTexB = makeNebulaTexture(256, rng, 70);
-    featureTextures.push(darkTex, litTex, backTex, emitTexA, emitTexB);
-    addFeature(backTex, { pos: [172, -102, -262], scale: [235, 205], opacity: 0.5, color: 0xc08a4a, order: 2 });
-    addFeature(backTex, { pos: [200, -72, -255], scale: [175, 155], opacity: 0.32, color: 0x9c2f6e, order: 2, minTier: 1 });
-    addFeature(litTex, { pos: [186, -118, -212], scale: [132, 166], opacity: 0.95, order: 3 });
-    addFeature(darkTex, { pos: [185, -117, -210], scale: [132, 166], opacity: 0.96, additive: false, order: 4 });
-    // the star that lights them
-    addFeature(heroTexture, { pos: [118, -50, -195], scale: [30, 30], opacity: 0.85, color: 0xffe2b8 });
+    // soft emission clouds — purely additive wisps in the JWST palette, no dark
+    // silhouettes or hard structures. Scattered around the field for depth, kept
+    // off the central text column and gated on tier so weak GPUs draw fewer.
+    const neb = [
+      makeNebulaTexture(256, rng, 88),
+      makeNebulaTexture(256, rng, 70),
+      makeNebulaTexture(256, rng, 100),
+      makeDustTexture(256, rng, 60),
+    ];
+    featureTextures.push(...neb);
 
-    // emission nebula, upper-left — Carina-flavoured layered cloud with a
-    // dark lane carving through it
-    addFeature(emitTexA, { pos: [-235, 92, -312], scale: [265, 195], opacity: 0.55, color: 0x2a8a80 });
-    addFeature(emitTexB, { pos: [-208, 76, -300], scale: [175, 140], opacity: 0.5, color: 0xc08a4a, minTier: 1 });
-    addFeature(emitTexA, { pos: [-272, 116, -290], scale: [195, 150], opacity: 0.42, color: 0x9c2f6e });
-    addFeature(dustTextures[1], { pos: [-228, 84, -285], scale: [210, 75], opacity: 0.5, color: 0x0d0820, additive: false, order: 4 });
-    addFeature(heroTexture, { pos: [-218, 88, -280], scale: [22, 22], opacity: 0.8, color: 0xfff2dc });
-    addFeature(heroTexture, { pos: [-248, 70, -275], scale: [13, 13], opacity: 0.7, color: 0xcfd8ff, minTier: 1 });
+    const TEAL = 0x2a8a80, AMBER = 0xc08a4a, MAGENTA = 0x9c2f6e,
+          INDIGO = 0x4a3a9a, BLUE = 0x2b3f8f, DEEPTEAL = 0x1f6a63, ROSE = 0x7c1d59;
+
+    const wisps = [
+      // upper-left bloom (Carina-flavoured: teal core, amber + rose layers)
+      { t: 0, pos: [-238, 96, -314], scale: [275, 205], opacity: 0.5,  color: TEAL },
+      { t: 1, pos: [-205, 78, -300], scale: [185, 145], opacity: 0.42, color: AMBER, minTier: 1 },
+      { t: 2, pos: [-278, 120, -296], scale: [205, 158], opacity: 0.36, color: MAGENTA },
+      // lower-right bloom (replaces the old pillars patch — soft, no silhouette)
+      { t: 2, pos: [188, -104, -300], scale: [270, 205], opacity: 0.44, color: INDIGO },
+      { t: 0, pos: [214, -80, -286], scale: [185, 150], opacity: 0.34, color: TEAL, minTier: 1 },
+      { t: 1, pos: [152, -124, -276], scale: [160, 128], opacity: 0.3,  color: AMBER },
+      // scattered depth across the rest of the sky
+      { t: 3, pos: [46, 150, -344],  scale: [250, 165], opacity: 0.28, color: BLUE, minTier: 1 },
+      { t: 2, pos: [-64, -156, -332], scale: [210, 158], opacity: 0.26, color: ROSE },
+      { t: 0, pos: [312, 36, -352],  scale: [170, 150], opacity: 0.28, color: INDIGO, minTier: 1 },
+      { t: 1, pos: [-326, -48, -346], scale: [160, 138], opacity: 0.26, color: DEEPTEAL, minTier: 2 },
+      { t: 3, pos: [96, 64, -360],   scale: [200, 150], opacity: 0.2,  color: BLUE, minTier: 2 },
+    ];
+    for (const w of wisps) {
+      addFeature(neb[w.t], {
+        pos: w.pos, scale: w.scale, opacity: w.opacity, color: w.color,
+        order: 2, minTier: w.minTier || 0,
+      });
+    }
+
+    // a couple of bright stars seated in the brightest clouds, as their cores
+    addFeature(heroTexture, { pos: [-220, 92, -284], scale: [22, 22], opacity: 0.8, color: 0xfff2dc });
+    addFeature(heroTexture, { pos: [178, -96, -268], scale: [18, 18], opacity: 0.7, color: 0xffe2b8, minTier: 1 });
   }
 
   /* ----- state ----- */
