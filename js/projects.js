@@ -145,6 +145,7 @@ export function initProjects({ env, onFocus }) {
   const field = document.getElementById('galaxy-field');
   const pager = document.getElementById('galaxy-pager');
   const hint = document.getElementById('galaxy-hint');
+  const eyebrow = stage.querySelector('.galaxy-eyebrow');
   const ghost = document.getElementById('galaxy-ghost');
   const thread = document.getElementById('galaxy-thread');
   const detail = document.getElementById('detail');
@@ -229,7 +230,9 @@ export function initProjects({ env, onFocus }) {
       let z, op;
       if (d >= -0.04) {                 // focus or behind it — recede deep
         z = -d * SPACING;
-        op = Math.max(0.1, clamp01(1.14 - d / 6.6));
+        // steeper falloff so the most distant peripheral nodes dim well back
+        // and never compete with the focused hero for the eye
+        op = Math.max(0.06, clamp01(1.14 - d / 4.2));
       } else {                          // in front of focus — soft foreground bokeh
         z = Math.min(-d * SPACING, 150);
         op = clamp01(1 + d * 0.85);
@@ -284,7 +287,7 @@ export function initProjects({ env, onFocus }) {
     if (!ghost) return;
     if (ghost.textContent !== PROJECTS[cur].num) ghost.textContent = PROJECTS[cur].num;
     const settle = Math.max(0, 1 - Math.abs(focus - cur) * 2);
-    ghost.style.opacity = (0.15 * settle).toFixed(3);
+    ghost.style.opacity = (0.22 * settle).toFixed(3);
   }
 
   function loop() {
@@ -311,7 +314,11 @@ export function initProjects({ env, onFocus }) {
   function step(delta) { stepTo(Math.round(target) + delta); }
 
   function markInteracted() {
-    if (!interacted) { interacted = true; if (hint) hint.classList.add('gone'); }
+    if (!interacted) {
+      interacted = true;
+      if (hint) hint.classList.add('gone');
+      if (eyebrow) eyebrow.classList.add('gone');
+    }
   }
 
   function onNodeClick(i) {

@@ -664,15 +664,19 @@ html.shot #warp { display: none; }
   transform: translate(-50%, -56%);
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: min(74vh, 60vw, 680px);
+  font-size: min(62vh, 50vw, 600px);
   line-height: 0.8;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   color: var(--starlight);
   opacity: 0; /* driven by projects.js */
   pointer-events: none;
   user-select: none;
-  /* soft white halo so the faint numeral reads on dark imagery too */
-  text-shadow: 0 0 70px rgba(238, 240, 255, 0.32);
+  /* a dark contrast halo (reads on bright photos) layered under a soft white
+     glow (reads on dark space) — legible whatever image sits behind it */
+  text-shadow:
+    0 0 18px rgba(4, 6, 16, 0.85),
+    0 0 40px rgba(4, 6, 16, 0.6),
+    0 0 70px rgba(238, 240, 255, 0.3);
 }
 
 /* the constellation thread linking the projects in sequence */
@@ -693,7 +697,7 @@ html.shot #warp { display: none; }
 
 .galaxy-eyebrow {
   position: absolute;
-  top: clamp(82px, 13vh, 128px);
+  top: clamp(54px, 8vh, 90px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -702,7 +706,10 @@ html.shot #warp { display: none; }
   text-transform: uppercase;
   color: var(--text-dim);
   white-space: nowrap;
+  transition: opacity 0.7s var(--ease-drift);
 }
+/* fade clear once the user starts drifting so it never fights the hero node */
+.galaxy-eyebrow.gone { opacity: 0; }
 
 .galaxy-hint {
   position: absolute;

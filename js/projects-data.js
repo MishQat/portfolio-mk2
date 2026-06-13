@@ -9,7 +9,7 @@
 export const PROJECTS = [
   {
     id: 1,
-    num: '01',
+    num: 'I',
     title: 'Autonomous Poker Dealer',
     subtitle: 'Computer Vision · AI · Robotics Integration',
     tagline: 'Worked in a team to design a robotic arm to deal poker cards, integrating mechanical design and control systems.',
@@ -47,7 +47,7 @@ export const PROJECTS = [
 
   {
     id: 2,
-    num: '02',
+    num: 'II',
     title: 'DMT Gravity-Propelled Car',
     subtitle: 'Mechanical Engineering · Design, Manufacture & Test',
     tagline: 'Design, manufacture, and test of a gravity-powered vehicle under strict performance and cost constraints.',
@@ -86,7 +86,7 @@ export const PROJECTS = [
 
   {
     id: 3,
-    num: '03',
+    num: 'III',
     title: '3-Axis CNC Positioning System',
     subtitle: 'Mechanical Design Project',
     tagline: 'Embodiment & detailed design of a precision CNC motion system under stiffness and performance constraints.',
@@ -121,7 +121,7 @@ export const PROJECTS = [
 
   {
     id: 4,
-    num: '04',
+    num: 'IV',
     title: 'Hack-A-Bot: Toxic Waste Disposal Rover',
     subtitle: '24-Hour Robotics Hackathon',
     tagline: '24-hour robotics hackathon: design and build a robot capable of transporting a sensor-equipped "toxic waste" barrel across an obstacle course under time pressure.',
@@ -153,7 +153,7 @@ export const PROJECTS = [
 
   {
     id: 5,
-    num: '05',
+    num: 'V',
     title: 'Gear-Prix: Drivetrain Design Challenge',
     subtitle: '12-Hour Mechanical Engineering Competition',
     tagline: '12-hour mechanical engineering competition: design, build, and race a small electric car with a focus on drivetrain optimisation.',
@@ -191,7 +191,7 @@ export const PROJECTS = [
 
   {
     id: 6,
-    num: '06',
+    num: 'VI',
     title: 'IMechE Design Challenge 2026',
     subtitle: 'Autonomous Robotics · SolidWorks FEA · Arduino · Mechatronics',
     team: 'Unlimited Rice Pudding · NW Regional Heat Winners → Nationals',
@@ -238,7 +238,7 @@ export const PROJECTS = [
 
   {
     id: 7,
-    num: '07',
+    num: 'VII',
     title: 'IMechE CADathon 2026',
     subtitle: 'SolidWorks · Mechanical Design · Design Sprint · SDG 11',
     team: '8-Hour Competitive Design Sprint · 2nd Place, Sustainability Category',
