@@ -128,21 +128,17 @@
       </div>
     </section>
 
-    <!-- ============ PROJECTS ============ -->
+    <!-- ============ PROJECTS — the depth-fly galaxy ============ -->
     <section id="view-projects" class="view" hidden>
-      <div class="projects-placeholder">
-        <h2 class="projects-placeholder-title">Selected Projects</h2>
-        <p class="projects-placeholder-note">The depth-field is under construction — for now, the raw list:</p>
-        <ol class="projects-placeholder-list">
-          <li>Autonomous Poker Dealer — robotic arm</li>
-          <li>DMT Gravity-Propelled Car</li>
-          <li>3-Axis CNC Positioning System</li>
-          <li>Hack-A-Bot — toxic waste disposal rover</li>
-          <li>Gear-Prix — drivetrain design challenge</li>
-          <li>IMechE Design Challenge 2026 — NW regional winners</li>
-          <li>IMechE CADathon 2026 — 2nd place, sustainability</li>
-        </ol>
+      <div class="galaxy" id="galaxy">
+        <p class="galaxy-eyebrow" aria-hidden="true">Selected Projects · drift through</p>
+        <!-- luminous nodes at depth; built + driven by js/projects.js -->
+        <div class="galaxy-field" id="galaxy-field"></div>
+        <div class="galaxy-pager" id="galaxy-pager" aria-label="Project index"></div>
+        <p class="galaxy-hint" id="galaxy-hint">scroll to drift &middot; click a star to open</p>
       </div>
+      <!-- the calm reading view; content injected on open (lazy media) -->
+      <article class="detail" id="detail" hidden aria-hidden="true"></article>
     </section>
 
   </main>

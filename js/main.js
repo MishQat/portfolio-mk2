@@ -7,6 +7,7 @@ import { initConstellation } from './constellation.js';
 import { initPortrait } from './portrait.js';
 import { initCursor } from './cursor.js';
 import { initWarp } from './warp.js';
+import { initProjects } from './projects.js';
 
 window.__BOOT_OK__ = true; // cancels the no-webgl watchdog in index.html
 
@@ -62,6 +63,12 @@ const portrait = initPortrait({
 const cursor = initCursor({ env });
 const warp = initWarp({ env });
 
+// the projects galaxy drives the cosmos glow as you drift through its depth
+const projects = initProjects({
+  env,
+  onFocus: (frac) => { if (cosmos) cosmos.setScroll(frac); },
+});
+
 if (SHIFT) {
   const hf = document.getElementById('home-flow');
   if (hf) hf.style.transform = `translateY(${-SHIFT}px)`;
@@ -113,6 +120,7 @@ let currentView = null;
 
 function setView(name) {
   if (name === currentView) return;
+  const prev = currentView;
   currentView = name;
   document.body.dataset.view = name;
   for (const [key, el] of Object.entries(views)) {
@@ -124,6 +132,9 @@ function setView(name) {
   publishScroll();
   // the spine lives in the home view; it can only measure once it's visible
   if (name === 'home' && constellation) constellation.rebuild();
+  // the galaxy attaches its own input only while it's the live view
+  if (prev === 'projects' && name !== 'projects' && projects) projects.deactivate();
+  if (name === 'projects' && projects) projects.activate();
 }
 
 // All navigation — chip clicks, the Alrescha gate, the wordmark, and the
@@ -233,5 +244,14 @@ if (DEBUG) {
     setTimeout(() => {
       location.hash = params.get('fly') === 'projects' ? '#/projects' : '#/';
     }, 500);
+  }
+
+  // ?debug&project=N (focus a node) / ?debug&open=N (open its detail) — needs the
+  // projects view; pair with #/projects, e.g. ?debug&open=5#/projects
+  if (params.has('project') && projects) {
+    setTimeout(() => projects._focusTo(parseInt(params.get('project'), 10) || 0), 500);
+  }
+  if (params.has('open') && projects) {
+    setTimeout(() => projects._open(parseInt(params.get('open'), 10) || 0), 700);
   }
 }
