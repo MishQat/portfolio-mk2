@@ -50,7 +50,7 @@ Restrained star field, richness from the nebulae. No broken/malformed nebula str
 
 ---
 
-## STAGE 3 — The stargate transition  [NEXT]
+## STAGE 3 — The stargate transition  [COMPLETE]
 Home <-> Projects navigation IS the transition. Inspired by 2001: A Space Odyssey "Jupiter
 and Beyond the Infinite" — the feeling of accelerating through a corridor of stars toward
 something. NOT seizure-inducing or overly trippy — sublime flight, not assault.
@@ -65,7 +65,18 @@ something. NOT seizure-inducing or overly trippy — sublime flight, not assault
 - Browser back button navigates correctly via history state.
 - It's one SPA — this is a continuous WebGL animation between states, not a page reload.
 
-## STAGE 4 — Projects page (depth-fly galaxy)
+**Built (js/warp.js + router rewrite in js/main.js):** the flight is a self-contained 2D-canvas
+overlay (`#warp`, z-index 9000) — GPU-light, no second WebGL context. A perspective star
+corridor accelerates into long streaks, blooms at centre ("beyond the infinite"), then
+decelerates; the dark backdrop ramps opaque to **mask the DOM view swap at the bloom peak**
+(progress 0.52), then fades to reveal the destination. ~2.4s. Dive-in bloom is warm/magenta,
+return flight is cool/blue. All nav (chips, Alrescha gate, wordmark, back/forward) now funnels
+through the hash → one `navigate()`; the cosmos loop is paused during the flight and resumed
+after. Reduced-motion takes a short JS opacity crossfade (`quickFade`, driven in rAF so the
+global reduced-motion transition override can't flatten it). Debug hooks: `?debug&warp=0.5`
+freezes one frame; `?debug&fly=projects|home` triggers a real flight.
+
+## STAGE 4 — Projects page (depth-fly galaxy)  [NEXT]
 Projects as luminous nodes at varying depths in space. User gently flies THROUGH them.
 **Principle: motion for delight, stillness for reading.**
 

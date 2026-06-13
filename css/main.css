@@ -143,6 +143,23 @@ html.shot #cosmos,
 html.shot #embers { display: none; }
 
 /* ==========================================================================
+   THE STARGATE — a full-screen flight that masks the home<->projects swap.
+   Painted entirely by warp.js (2D canvas); sits above the page chrome but
+   below the sword cursor, so you fly with blade in hand.
+   ========================================================================== */
+
+#warp {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9000;
+  pointer-events: none;
+}
+#warp:not(.on) { display: none; }
+html.shot #warp { display: none; }
+
+/* ==========================================================================
    CHROME — wordmark + nav chips (liquid glass gets its real pass in stage 5)
    ========================================================================== */
 

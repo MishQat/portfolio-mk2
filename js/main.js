@@ -1,11 +1,12 @@
 // main.js — boot, environment flags, view state machine (home/projects),
-// and the wiring between the DOM and the cosmos. The stargate transition
-// arrives in stage 3; for now view changes are instant swaps.
+// and the wiring between the DOM and the cosmos. Home<->projects navigation is
+// the stargate flight (warp.js); reduced-motion gets a clean fade instead.
 
 import { createCosmos } from './cosmos.js';
 import { initConstellation } from './constellation.js';
 import { initPortrait } from './portrait.js';
 import { initCursor } from './cursor.js';
+import { initWarp } from './warp.js';
 
 window.__BOOT_OK__ = true; // cancels the no-webgl watchdog in index.html
 
@@ -59,6 +60,7 @@ const portrait = initPortrait({
   onLayout: () => { if (constellation) constellation.rebuild(); },
 });
 const cursor = initCursor({ env });
+const warp = initWarp({ env });
 
 if (SHIFT) {
   const hf = document.getElementById('home-flow');
@@ -124,8 +126,73 @@ function setView(name) {
   if (name === 'home' && constellation) constellation.rebuild();
 }
 
-window.addEventListener('hashchange', () => setView(parseRoute()));
-setView(parseRoute());
+// All navigation — chip clicks, the Alrescha gate, the wordmark, and the
+// browser back/forward buttons — funnels through the hash, then through here.
+let navBusy = false;
+let pendingRoute = null;
+
+function navigate() {
+  const to = parseRoute();
+  if (to === currentView) return;
+  if (navBusy) { pendingRoute = to; return; } // ignore re-triggers mid-flight
+
+  navBusy = true;
+
+  if (env.reducedMotion) {
+    quickFade(to);
+    return;
+  }
+
+  html.classList.add('warping');
+  if (cosmos) cosmos.stop(); // the flight masks the sky; save the GPU meanwhile
+  warp.play({
+    direction: to === 'projects' ? 'in' : 'out',
+    onPeak: () => setView(to), // swap the DOM under cover of the bloom
+  }).then(finishNav, finishNav);
+}
+
+function finishNav() {
+  html.classList.remove('warping');
+  if (cosmos) cosmos.start(); // start()'s own guards no-op under reduced-motion
+  navBusy = false;
+  if (pendingRoute && pendingRoute !== currentView) {
+    const tgt = pendingRoute;
+    pendingRoute = null;
+    setView(tgt); // reconcile an interrupted flight, instantly
+  } else {
+    pendingRoute = null;
+  }
+}
+
+// reduced-motion path: a short, direct opacity fade (driven here, not via CSS,
+// so the global reduced-motion transition override can't flatten it to nothing).
+function quickFade(to) {
+  const main = document.getElementById('main');
+  if (!main) { setView(to); finishNav(); return; }
+  const OUT = 150, IN = 200;
+  let t0 = 0;
+  function fadeOut(now) {
+    if (!t0) t0 = now;
+    const k = Math.min(1, (now - t0) / OUT);
+    main.style.opacity = String(1 - k);
+    if (k < 1) { requestAnimationFrame(fadeOut); return; }
+    setView(to);
+    t0 = 0;
+    requestAnimationFrame(fadeIn);
+  }
+  function fadeIn(now) {
+    if (!t0) t0 = now;
+    const k = Math.min(1, (now - t0) / IN);
+    main.style.opacity = String(k);
+    if (k < 1) { requestAnimationFrame(fadeIn); return; }
+    main.style.opacity = '';
+    finishNav();
+  }
+  requestAnimationFrame(fadeOut);
+}
+
+window.addEventListener('hashchange', navigate);
+setView(parseRoute()); // initial view — no flight on first paint
 
 /* -------------------------------------------------------------- debug loop */
 
@@ -152,5 +219,19 @@ if (DEBUG) {
   // (headless screenshots of fixed layers break after scripted page scroll)
   if (params.has('cosmosScroll') && cosmos) {
     setTimeout(() => cosmos.setScroll(parseFloat(params.get('cosmosScroll')) || 0), 400);
+  }
+
+  // ?debug&warp=0.5[&warpDir=out] — freeze one stargate frame at that progress
+  if (params.has('warp')) {
+    setTimeout(() => {
+      warp.renderAt(parseFloat(params.get('warp')) || 0, params.get('warpDir') || 'in');
+    }, 400);
+  }
+
+  // ?debug&fly=projects|home — trigger a real flight via the hash (integration)
+  if (params.has('fly')) {
+    setTimeout(() => {
+      location.hash = params.get('fly') === 'projects' ? '#/projects' : '#/';
+    }, 500);
   }
 }
