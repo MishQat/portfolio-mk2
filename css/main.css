@@ -643,15 +643,52 @@ html.shot #warp { display: none; }
   inset: 0;
   z-index: 1;
   overflow: hidden;
-  perspective: 1200px;
+  perspective: 1000px; /* MUST match PERSP in js/projects.js */
   perspective-origin: 50% 44%;
 }
 
 .galaxy-field {
   position: absolute;
   inset: 0;
+  z-index: 2;
   transform-style: preserve-3d;
   pointer-events: none; /* the nodes re-enable it */
+}
+
+/* big, faint, editorial project number behind the focused node */
+.galaxy-ghost {
+  position: absolute;
+  z-index: 0;
+  top: 41%;
+  left: 50%;
+  transform: translate(-50%, -56%);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: min(74vh, 60vw, 680px);
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  color: var(--starlight);
+  opacity: 0; /* driven by projects.js */
+  pointer-events: none;
+  user-select: none;
+  /* soft white halo so the faint numeral reads on dark imagery too */
+  text-shadow: 0 0 70px rgba(238, 240, 255, 0.32);
+}
+
+/* the constellation thread linking the projects in sequence */
+.galaxy-thread {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.thread-line {
+  stroke: rgba(201, 53, 111, 0.5);
+  stroke-width: 1;
+  stroke-linecap: round;
 }
 
 .galaxy-eyebrow {
@@ -714,10 +751,9 @@ html.shot #warp { display: none; }
 .node {
   position: absolute;
   left: 50%;
-  top: 44%;
+  top: 42%;
   display: grid;
   justify-items: center;
-  gap: 0.85em;
   margin: 0;
   padding: 0;
   border: 0;
@@ -736,7 +772,7 @@ html.shot #warp { display: none; }
 
 .node-core {
   position: relative;
-  width: clamp(116px, 13.5vw, 184px);
+  width: clamp(210px, 27vw, 420px); /* the focused node commands the centre */
   aspect-ratio: 1;
   border-radius: 50%;
   overflow: hidden;
@@ -765,34 +801,27 @@ html.shot #warp { display: none; }
 }
 
 .node.is-focused .node-core {
-  transform: scale(1.05);
+  transform: scale(1.1);
   box-shadow:
     0 0 0 1.5px color-mix(in srgb, var(--accent) 82%, transparent),
-    0 0 40px 6px color-mix(in srgb, var(--accent) 52%, transparent),
-    0 0 96px 20px color-mix(in srgb, var(--accent) 22%, transparent),
-    0 14px 50px rgba(2, 1, 8, 0.62);
+    0 0 54px 8px color-mix(in srgb, var(--accent) 52%, transparent),
+    0 0 130px 28px color-mix(in srgb, var(--accent) 24%, transparent),
+    0 18px 60px rgba(2, 1, 8, 0.62);
 }
 
-.node-num {
-  font-size: 0.72rem;
-  letter-spacing: 0.42em;
-  text-indent: 0.42em;
-  color: color-mix(in srgb, var(--accent) 65%, var(--text-dim));
-  opacity: 0.75;
-}
-
-/* the title block only resolves for the focused node — stillness for reading */
+/* the title block only resolves for the focused node — stillness for reading.
+   sits clear below the (large, scaled) core so it never collides with it */
 .node-meta {
   position: absolute;
-  top: calc(100% + 0.5em);
+  top: calc(100% + 2em);
   left: 50%;
   width: max-content;
   max-width: min(42ch, 84vw);
   display: grid;
   justify-items: center;
-  gap: 0.32em;
+  gap: 0.4em;
   opacity: 0;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%) translateY(10px);
   transition: opacity 0.55s var(--ease-drift), transform 0.55s var(--ease-drift);
   pointer-events: none;
 }
@@ -801,10 +830,11 @@ html.shot #warp { display: none; }
 .node-title {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: clamp(1.4rem, 2.7vw, 2.1rem);
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
   line-height: 1.12;
   color: var(--starlight);
-  text-shadow: 0 0 26px color-mix(in srgb, var(--accent) 40%, transparent);
+  text-shadow: 0 2px 24px rgba(6, 3, 16, 0.7),
+               0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .node-sub {
   font-size: 0.7rem;
@@ -1082,9 +1112,8 @@ html.shot #warp { display: none; }
   transform: translateY(-1px);
 }
 
-/* coarse pointers: lighter depth blur, no backdrop blur (keep it cheap + crisp) */
+/* coarse pointers: keep the (JS-capped) depth blur, drop the costly backdrop blur */
 @media (pointer: coarse) {
-  .node { filter: none; }
   .detail { backdrop-filter: none; -webkit-backdrop-filter: none;
             background:
               radial-gradient(120% 90% at var(--ox, 50%) var(--oy, 42%),
@@ -1093,7 +1122,10 @@ html.shot #warp { display: none; }
 }
 
 @media (max-width: 600px) {
-  .node-core { width: clamp(104px, 30vw, 150px); }
+  .node-core { width: clamp(150px, 44vw, 260px); }
+  .node-meta { top: calc(100% + 1.4em); }
+  .node-title { font-size: clamp(1.4rem, 6vw, 1.9rem); }
+  .galaxy-ghost { font-size: min(40vh, 68vw); }
   .galaxy-pager { right: 10px; gap: 11px; }
   .galaxy-eyebrow { font-size: 0.62rem; letter-spacing: 0.24em; }
 }

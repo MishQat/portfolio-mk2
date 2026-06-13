@@ -8,15 +8,16 @@
 import { PROJECTS } from './projects-data.js';
 
 const N = PROJECTS.length;
-const SPACING = 300;     // z-distance between consecutive nodes (px)
-const EASE = 0.12;       // focus glide
+const SPACING = 470;     // z-distance between consecutive nodes (px) — deep travel
+const PERSP = 1000;      // MUST match the CSS `perspective` on .galaxy
+const EASE = 0.11;       // focus glide
 
-// gentle wandering path so receding nodes peek out to the sides (a corridor,
-// not a stack). Deterministic per index.
-const BX = [], BY = [];
+// a wandering path in normalised space [-1, 1]; scaled to the viewport at
+// render time so the field uses the whole frame on any screen.
+const NX = [], NY = [];
 for (let i = 0; i < N; i++) {
-  BX[i] = Math.sin(i * 0.78 + 0.6) * 250;
-  BY[i] = Math.sin(i * 1.15 + 0.3) * 122;
+  NX[i] = Math.sin(i * 0.85 + 0.5);
+  NY[i] = Math.cos(i * 1.25 + 0.4);
 }
 const lerp = (a, b, t) => a + (b - a) * t;
 function interpBase(arr, f) {
@@ -137,15 +138,20 @@ function buildDetail(p) {
 }
 
 /* -------------------------------------------------------------- controller */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 export function initProjects({ env, onFocus }) {
   const stage = document.getElementById('view-projects');
   const field = document.getElementById('galaxy-field');
   const pager = document.getElementById('galaxy-pager');
   const hint = document.getElementById('galaxy-hint');
+  const ghost = document.getElementById('galaxy-ghost');
+  const thread = document.getElementById('galaxy-thread');
   const detail = document.getElementById('detail');
   if (!stage || !field || !detail) return null;
 
   let nodes = [];
+  let threadLines = [];
   let built = false;
   let active = false;
   let focus = 0, target = 0;
@@ -153,10 +159,30 @@ export function initProjects({ env, onFocus }) {
   let detailOpen = false;
   let interacted = false;
 
+  // viewport + amplitude, recomputed on resize — the field spans the frame
+  let vw = window.innerWidth, vh = window.innerHeight, AMPX = 0, AMPY = 0;
+  function measure() {
+    vw = window.innerWidth; vh = window.innerHeight;
+    AMPX = Math.min(vw * 0.46, 700);
+    AMPY = Math.min(vh * 0.42, 430);
+    if (thread) { thread.setAttribute('width', vw); thread.setAttribute('height', vh); }
+  }
+
   /* ----- build the node field once ----- */
   function build() {
     field.textContent = '';
     pager.textContent = '';
+    if (thread) thread.textContent = '';
+    threadLines = [];
+
+    // the faint constellation thread, drawn behind the nodes (one segment per gap)
+    for (let i = 0; i < N - 1; i++) {
+      const ln = document.createElementNS(SVG_NS, 'line');
+      ln.setAttribute('class', 'thread-line');
+      if (thread) thread.appendChild(ln);
+      threadLines.push(ln);
+    }
+
     nodes = PROJECTS.map((p, i) => {
       const btn = el('button', 'node');
       btn.type = 'button';
@@ -169,7 +195,6 @@ export function initProjects({ env, onFocus }) {
       }
       core.appendChild(thumb);
       btn.appendChild(core);
-      btn.appendChild(el('span', 'node-num', p.num));
       const meta = el('span', 'node-meta');
       meta.appendChild(el('span', 'node-title', inline(p.title)));
       meta.appendChild(el('span', 'node-sub', inline(p.subtitle)));
@@ -184,40 +209,82 @@ export function initProjects({ env, onFocus }) {
       dot.setAttribute('aria-label', `Project ${p.num}: ${p.title}`);
       dot.addEventListener('click', () => { stepTo(i); });
       pager.appendChild(dot);
-      return { btn, dot, p };
+      return { btn, dot, p, sx: 0, sy: 0, sv: 0 };
     });
     built = true;
   }
 
   /* ----- layout: write every node's depth transform from `focus` ----- */
   function render() {
-    const bxF = interpBase(BX, focus), byF = interpBase(BY, focus);
     const cur = Math.round(focus);
+    const bxF = interpBase(NX, focus) * AMPX;   // focused node's base — recentred
+    const byF = interpBase(NY, focus) * AMPY;
+    const maxBlur = env.coarse ? 6 : 15;        // camera bokeh; lighter on touch
+
     for (let i = 0; i < N; i++) {
       const nd = nodes[i];
       const d = i - focus;
-      const ox = BX[i] - bxF, oy = BY[i] - byF;
+      const ad = Math.abs(d);
+
       let z, op;
-      if (d >= -0.04) {                 // current / ahead — recede into depth
+      if (d >= -0.04) {                 // focus or behind it — recede deep
         z = -d * SPACING;
-        op = Math.max(0.13, clamp01(1.08 - d / 6.2));
-      } else {                          // passed — a quick swell-and-gone as you
-        z = Math.min(-d * SPACING, 95); // fly through it, so it never out-sizes
-        op = clamp01(1 + d * 2.0);      // the focused node
+        op = Math.max(0.1, clamp01(1.14 - d / 6.6));
+      } else {                          // in front of focus — soft foreground bokeh
+        z = Math.min(-d * SPACING, 150);
+        op = clamp01(1 + d * 0.85);
       }
-      const blur = Math.max(0, Math.min(5, d * 0.92));
+      // the further from focus, the wider into the periphery (fights the
+      // vanishing-point clustering so the field fills the frame)
+      const spread = 1 + Math.min(ad, 4.5) * 0.17;
+      const ox = (NX[i] * AMPX - bxF) * spread;
+      const oy = (NY[i] * AMPY - byF) * spread;
+      // depth of field: sharp at focus, blur grows with distance to either side
+      const blur = Math.min(maxBlur, Math.max(0, (ad - 0.3) * 7.5));
+
       const st = nd.btn.style;
       st.setProperty('--tx', ox.toFixed(1) + 'px');
       st.setProperty('--ty', oy.toFixed(1) + 'px');
       st.setProperty('--tz', z.toFixed(1) + 'px');
       st.opacity = op.toFixed(3);
       st.setProperty('--blur', blur.toFixed(2) + 'px');
-      st.zIndex = String(1000 - Math.round(Math.abs(d) * 10));
-      nd.btn.style.pointerEvents = op > 0.12 ? 'auto' : 'none';
+      st.zIndex = String(1000 - Math.round(ad * 10));
+      nd.btn.style.pointerEvents = op > 0.14 ? 'auto' : 'none';
       nd.btn.classList.toggle('is-focused', i === cur);
       nd.dot.classList.toggle('is-on', i === cur);
+
+      // project to screen for the constellation thread
+      const scale = PERSP / (PERSP - z);
+      nd.sx = vw * 0.5 + ox * scale;
+      nd.sy = vh * 0.44 + oy * scale;
+      nd.sv = op;
     }
+
+    updateThread();
+    updateGhost(cur);
     if (onFocus) onFocus(N > 1 ? focus / (N - 1) : 0);
+  }
+
+  // a subtle thread linking the projects in sequence — their own little
+  // constellation, echoing the Pisces spine on home.
+  function updateThread() {
+    for (let i = 0; i < threadLines.length; i++) {
+      const a = nodes[i], b = nodes[i + 1], ln = threadLines[i];
+      ln.setAttribute('x1', a.sx.toFixed(1));
+      ln.setAttribute('y1', a.sy.toFixed(1));
+      ln.setAttribute('x2', b.sx.toFixed(1));
+      ln.setAttribute('y2', b.sy.toFixed(1));
+      ln.style.opacity = (Math.min(a.sv, b.sv) * 0.4).toFixed(3);
+    }
+  }
+
+  // big, faint, editorial project number behind the focused node; it fades out
+  // as you drift between projects and the next one fades in.
+  function updateGhost(cur) {
+    if (!ghost) return;
+    if (ghost.textContent !== PROJECTS[cur].num) ghost.textContent = PROJECTS[cur].num;
+    const settle = Math.max(0, 1 - Math.abs(focus - cur) * 2);
+    ghost.style.opacity = (0.15 * settle).toFixed(3);
   }
 
   function loop() {
@@ -344,12 +411,16 @@ export function initProjects({ env, onFocus }) {
   const close = closeDetail; // alias used in onKey
 
   /* ----- lifecycle ----- */
+  function onResize() { measure(); render(); }
+
   function activate() {
     if (!built) build();
     active = true;
+    measure();
     stage.classList.add('is-live');
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
     field.addEventListener('touchstart', onTouchStart, { passive: true });
     field.addEventListener('touchmove', onTouchMove, { passive: true });
     field.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -362,6 +433,7 @@ export function initProjects({ env, onFocus }) {
     stage.classList.remove('is-live');
     window.removeEventListener('wheel', onWheel, { passive: false });
     window.removeEventListener('keydown', onKey);
+    window.removeEventListener('resize', onResize);
     field.removeEventListener('touchstart', onTouchStart);
     field.removeEventListener('touchmove', onTouchMove);
     field.removeEventListener('touchend', onTouchEnd);

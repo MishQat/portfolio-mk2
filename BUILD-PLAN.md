@@ -108,6 +108,15 @@ Reduced-motion: instant focus steps + instant reader (no rAF, no transitions). M
 shrink, touch-swipe steps, single-column reader. Debug: `?debug&project=N` focuses a node,
 `?debug&open=N` opens its detail (pair with `#/projects`). All paths CDP-verified.
 
+**Cinematic rework (bolder use of space + depth):** focused node enlarged ~2.2× to command the
+centre as the clear hero (core `clamp(210px,27vw,420px)` × `scale(1.1)`); base positions are
+normalised and scaled to the viewport so the field spans the whole frame, with a per-node
+`spread` factor pushing receding nodes into the periphery and `SPACING` deepened to 470. Added
+genuine **depth-of-field** — sharp at focus, camera-bokeh blur growing with distance to BOTH
+sides. Added a **big ghosted project number** (`.galaxy-ghost`, ~15% opacity, behind the hero,
+crossfades between projects) and a **faint constellation thread** (`.galaxy-thread` SVG,
+per-frame screen-projected) linking the projects in sequence — echoing the home Pisces spine.
+
 ## STAGE 5 — Liquid glass polish + performance/mobile pass  [NEXT]
 - Proper iOS 26-style **liquid glass** buttons (Projects/Home nav + any controls) — real
   backdrop refraction, dynamic specular highlights responding to cursor position, soft inner

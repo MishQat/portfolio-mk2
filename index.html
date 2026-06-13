@@ -132,6 +132,9 @@
     <section id="view-projects" class="view" hidden>
       <div class="galaxy" id="galaxy">
         <p class="galaxy-eyebrow" aria-hidden="true">Selected Projects · drift through</p>
+        <!-- big ghosted number + faint constellation thread, behind the nodes -->
+        <div class="galaxy-ghost" id="galaxy-ghost" aria-hidden="true">01</div>
+        <svg class="galaxy-thread" id="galaxy-thread" aria-hidden="true" preserveAspectRatio="none"></svg>
         <!-- luminous nodes at depth; built + driven by js/projects.js -->
         <div class="galaxy-field" id="galaxy-field"></div>
         <div class="galaxy-pager" id="galaxy-pager" aria-label="Project index"></div>
