@@ -3,6 +3,9 @@
 // arrives in stage 3; for now view changes are instant swaps.
 
 import { createCosmos } from './cosmos.js';
+import { initConstellation } from './constellation.js';
+import { initPortrait } from './portrait.js';
+import { initCursor } from './cursor.js';
 
 window.__BOOT_OK__ = true; // cancels the no-webgl watchdog in index.html
 
@@ -17,6 +20,12 @@ const env = {
 
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
+// ?shot — screenshot helper: un-fix the sky so scripted scroll doesn't blank
+// the compositor in headless captures. Purely a test aid.
+if (params.has('shot')) html.classList.add('shot');
+// ?shift=N — slide the home flow up N px (instead of scrolling) so a register
+// enters a normal-height viewport; avoids the headless scroll-blank entirely.
+const SHIFT = parseInt(params.get('shift') || '0', 10);
 const hud = document.getElementById('debug-hud');
 const hudLog = [];
 
@@ -41,6 +50,21 @@ if (!cosmos) {
   cosmos.start();
 }
 
+/* ------------------------------------------ home: spine, portrait, cursor */
+
+// the portrait re-lays-out once its image paints; the spine measures it.
+const constellation = initConstellation({ env });
+const portrait = initPortrait({
+  env,
+  onLayout: () => { if (constellation) constellation.rebuild(); },
+});
+const cursor = initCursor({ env });
+
+if (SHIFT) {
+  const hf = document.getElementById('home-flow');
+  if (hf) hf.style.transform = `translateY(${-SHIFT}px)`;
+}
+
 /* ------------------------------------------------------------ scroll/input */
 
 let scrollScheduled = false;
@@ -49,6 +73,7 @@ function publishScroll() {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   const p = max > 0 ? window.scrollY / max : 0;
   if (cosmos) cosmos.setScroll(p);
+  if (constellation) constellation.update();
 }
 
 window.addEventListener('scroll', () => {
@@ -60,12 +85,10 @@ window.addEventListener('scroll', () => {
 
 if (!env.coarse && !env.reducedMotion) {
   window.addEventListener('pointermove', (e) => {
-    if (cosmos) {
-      cosmos.setPointer(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        -((e.clientY / window.innerHeight) * 2 - 1)
-      );
-    }
+    const nx = (e.clientX / window.innerWidth) * 2 - 1;
+    const ny = -((e.clientY / window.innerHeight) * 2 - 1);
+    if (cosmos) cosmos.setPointer(nx, ny);
+    if (portrait) portrait.setPointer(nx, ny);
   }, { passive: true });
 }
 
@@ -97,6 +120,8 @@ function setView(name) {
   navHome.hidden = name === 'home';
   window.scrollTo({ top: 0, behavior: 'instant' });
   publishScroll();
+  // the spine lives in the home view; it can only measure once it's visible
+  if (name === 'home' && constellation) constellation.rebuild();
 }
 
 window.addEventListener('hashchange', () => setView(parseRoute()));

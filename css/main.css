@@ -135,6 +135,13 @@ a { color: inherit; text-decoration: none; }
 
 .no-webgl #cosmos { display: none; }
 
+/* screenshot helper (?shot): absolute sky scrolls with the page so headless
+   captures don't blank out fixed layers after a scripted scroll */
+html.shot body { position: relative; }
+html.shot #nebula-base { position: absolute; }
+html.shot #cosmos,
+html.shot #embers { display: none; }
+
 /* ==========================================================================
    CHROME — wordmark + nav chips (liquid glass gets its real pass in stage 5)
    ========================================================================== */
@@ -210,6 +217,7 @@ a { color: inherit; text-decoration: none; }
   text-align: center;
   padding: 0 6vw;
   position: relative;
+  z-index: 1;
 }
 
 .home-kicker {
@@ -278,8 +286,343 @@ a { color: inherit; text-decoration: none; }
   100% { transform: scaleY(0); opacity: 0; }
 }
 
-/* stage-2 placeholders: just scroll room for now */
-.home-spacer { height: 90svh; }
+/* ==========================================================================
+   HOME FLOW — the descent: hero → likeness → verse → silence → the knot.
+   The Pisces spine (#spine) is drawn behind it all; quotes float above.
+   ========================================================================== */
+
+#home-flow {
+  position: relative;
+}
+
+/* the constellation; sized in JS to the full flow. Behind content, but its
+   text labels opt back into pointer events so they can be clicked. */
+#spine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.spine-cord,
+.spine-ring {
+  fill: none;
+  stroke: rgba(201, 53, 111, 0.34);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spine-ring { stroke: rgba(244, 238, 255, 0.16); }
+
+.spine-star {
+  fill: rgba(244, 238, 255, 0.92);
+  opacity: 0;
+  transition: opacity 1.1s var(--ease-drift);
+}
+.spine-star.lit { opacity: 1; }
+
+.spine-star-gold {
+  fill: var(--gold);
+  filter: drop-shadow(0 0 6px rgba(232, 194, 138, 0.85));
+}
+.spine-halo { transition: opacity 1.4s var(--ease-drift); }
+
+.spine-label {
+  fill: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 1.1s var(--ease-drift), fill 0.4s var(--ease-drift);
+}
+.spine-label.lit { opacity: 0.62; }
+.spine-label:hover { fill: var(--gold); opacity: 1; }
+
+/* the registers — three spatial keys for the three quotes */
+.register {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  display: grid;
+  padding: clamp(14vh, 18vh, 22vh) clamp(22px, 7vw, 96px);
+}
+
+.quote { max-width: 30ch; }
+.quote p {
+  font-family: var(--font-serif);
+  line-height: 1.32;
+  color: var(--starlight);
+  text-wrap: balance;
+}
+.quote cite {
+  display: block;
+  margin-top: 1.1em;
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.quote[data-placeholder]::after {
+  content: "draft";
+  display: inline-block;
+  margin-left: 0.8em;
+  font-family: var(--font-sans);
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--magenta);
+  border: 1px solid rgba(201, 53, 111, 0.4);
+  border-radius: 3px;
+  padding: 1px 5px;
+  vertical-align: middle;
+  opacity: 0.6;
+}
+
+/* ---- register I · the likeness (near, intimate, large) ---- */
+.register--likeness {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+}
+.portrait {
+  display: grid;
+  place-items: center;
+  justify-self: end;
+}
+.quote--near {
+  justify-self: start;
+}
+.quote--near p {
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3.2vw, 2.5rem);
+}
+
+/* ---- register II · the verse (mid, centred scripture) ---- */
+.register--verse {
+  place-items: center;
+  text-align: center;
+}
+.quote--verse { max-width: 22ch; }
+.quote--verse p {
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 38px rgba(73, 54, 168, 0.5), 0 0 90px rgba(201, 53, 111, 0.2);
+}
+.quote--verse cite { letter-spacing: 0.3em; }
+
+/* ---- register III · the silence (far, small, dim, adrift) ---- */
+.register--silence {
+  place-items: end center;
+  align-content: center;
+}
+.quote--far {
+  max-width: 26ch;
+  text-align: right;
+  margin-right: clamp(0px, 6vw, 120px);
+  opacity: 0.66;
+}
+.quote--far p {
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(0.95rem, 1.8vw, 1.3rem);
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.quote--far cite { letter-spacing: 0.28em; }
+
+@media (max-width: 720px) {
+  .register--likeness {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: clamp(28px, 7vw, 48px);
+  }
+  .portrait, .quote--near { justify-self: center; }
+  .quote--near { text-align: center; }
+  .quote--far { text-align: center; margin-right: 0; }
+  .register--silence { place-items: center; }
+}
+
+/* ==========================================================================
+   THE PORTRAIT — held in a JWST primary-mirror hexagon, gold-rimmed, seamed
+   into segments, catching a slow sheen. Tilt is applied inline by portrait.js.
+   ========================================================================== */
+
+.portrait-mirror {
+  --hex: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  position: relative;
+  width: clamp(240px, 32vw, 420px);
+  aspect-ratio: 1 / 0.866;
+  clip-path: var(--hex);
+  background:
+    linear-gradient(150deg, #f3d49a 0%, #b98a44 28%, #6c4f28 60%, #e8c28a 100%);
+  transform: perspective(900px);
+  transform-style: preserve-3d;
+  transition: filter 0.6s var(--ease-drift);
+  filter: drop-shadow(0 22px 48px rgba(2, 1, 8, 0.6));
+}
+
+.portrait-mirror img {
+  position: absolute;
+  inset: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  object-fit: cover;
+  object-position: 50% 30%;
+  clip-path: var(--hex);
+  filter: saturate(0.92) contrast(1.02);
+}
+
+/* segment seams — faint gold honeycomb suggesting the 18-tile array */
+.portrait-seams {
+  position: absolute;
+  inset: 3px;
+  clip-path: var(--hex);
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23e8c28a' stroke-width='0.7' stroke-opacity='0.28'%3E%3Cpolygon points='37.5,21.65 62.5,21.65 75,43.3 62.5,64.95 37.5,64.95 25,43.3'/%3E%3Cline x1='50' y1='0' x2='50' y2='21.65'/%3E%3Cline x1='100' y1='43.3' x2='75' y2='43.3'/%3E%3Cline x1='50' y1='86.6' x2='50' y2='64.95'/%3E%3Cline x1='0' y1='43.3' x2='25' y2='43.3'/%3E%3Cline x1='25' y1='0' x2='37.5' y2='21.65'/%3E%3Cline x1='75' y1='0' x2='62.5' y2='21.65'/%3E%3Cline x1='25' y1='86.6' x2='37.5' y2='64.95'/%3E%3Cline x1='75' y1='86.6' x2='62.5' y2='64.95'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+/* a slow specular sheen sweeping the mirror */
+.portrait-sheen {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex);
+  pointer-events: none;
+  background: linear-gradient(120deg,
+    transparent 38%,
+    rgba(255, 248, 230, 0.16) 48%,
+    rgba(255, 255, 255, 0.30) 50%,
+    rgba(255, 248, 230, 0.16) 52%,
+    transparent 62%);
+  background-size: 280% 280%;
+  mix-blend-mode: screen;
+  animation: sheen-sweep 9s ease-in-out infinite;
+}
+
+@keyframes sheen-sweep {
+  0%, 100% { background-position: 130% 0%; opacity: 0; }
+  45%      { opacity: 1; }
+  55%      { opacity: 1; }
+  50%      { background-position: -30% 100%; }
+  60%, 100%{ background-position: -30% 100%; opacity: 0; }
+}
+
+/* ==========================================================================
+   ALRESCHA — the knot where the cords tie; the gate into the projects.
+   ========================================================================== */
+
+.alrescha {
+  position: relative;
+  z-index: 1;
+  min-height: 86svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 0.55em;
+  padding: 8vh 6vw 16vh;
+  color: var(--starlight);
+}
+
+.alrescha-star {
+  width: 16px;
+  height: 16px;
+  margin-bottom: 1.2em;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--gold) 38%, var(--magenta) 78%, transparent 100%);
+  box-shadow:
+    0 0 14px 3px rgba(232, 194, 138, 0.8),
+    0 0 40px 10px rgba(201, 53, 111, 0.45);
+  animation: knot-pulse 4.5s ease-in-out infinite;
+}
+
+@keyframes knot-pulse {
+  0%, 100% { transform: scale(1);   box-shadow: 0 0 14px 3px rgba(232,194,138,0.8), 0 0 40px 10px rgba(201,53,111,0.45); }
+  50%      { transform: scale(1.18); box-shadow: 0 0 22px 5px rgba(232,194,138,0.95), 0 0 64px 16px rgba(201,53,111,0.6); }
+}
+
+.alrescha-name {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 30px rgba(201, 53, 111, 0.4);
+}
+.alrescha-sub {
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.alrescha-enter {
+  margin-top: 1.8em;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--starlight);
+  padding: 0.75em 1.7em;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 53, 111, 0.4);
+  background: linear-gradient(160deg, rgba(201, 53, 111, 0.16), rgba(244, 238, 255, 0.03));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color 0.4s var(--ease-drift), box-shadow 0.4s var(--ease-drift), transform 0.4s var(--ease-drift);
+}
+.alrescha:hover .alrescha-enter {
+  border-color: rgba(201, 53, 111, 0.8);
+  box-shadow: 0 6px 30px rgba(142, 33, 96, 0.4);
+  transform: translateY(-2px);
+}
+.alrescha:hover .alrescha-name { text-shadow: 0 0 38px rgba(201, 53, 111, 0.7); }
+
+/* ==========================================================================
+   SWORD CURSOR + MAGENTA EMBERS (fine pointers, motion allowed)
+   ========================================================================== */
+
+.sword-cursor-on,
+.sword-cursor-on a,
+.sword-cursor-on button,
+.sword-cursor-on .spine-label,
+.sword-cursor-on * { cursor: none; }
+
+#embers {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+#sword-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55))
+          drop-shadow(0 0 6px rgba(201, 53, 111, 0.45));
+  will-change: transform;
+}
+#sword-cursor.live { opacity: 1; }
+#sword-cursor svg { display: block; }
 
 /* ---------- projects (placeholder until stage 4) ---------- */
 
