@@ -43,8 +43,9 @@ function pickStarColor(rng) {
 }
 
 /* ---------------------------------------------------------------- textures */
+/* exported for the .claude-screens/textest.html harness */
 
-function makeSoftCircleTexture(size) {
+export function makeSoftCircleTexture(size) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d');
@@ -111,7 +112,7 @@ function makeDiffractionTexture(size) {
 
 // Cloudy luminance blob — tinted per-mesh. A pile of soft circles inside a
 // radial falloff mask reads as nebula wisps once additive-blended and scaled.
-function makeDustTexture(size, rng, blobs) {
+export function makeDustTexture(size, rng, blobs) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d');
@@ -142,6 +143,221 @@ function makeDustTexture(size, rng, blobs) {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+// Denser cousin of the dust texture — for emission nebulae that need to read
+// as actual structures rather than ambient haze.
+export function makeNebulaTexture(size, rng, blobs) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const mid = size / 2;
+
+  for (let i = 0; i < blobs; i++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = Math.pow(rng(), 0.7) * size * 0.32;
+    const x = mid + Math.cos(ang) * dist * (0.7 + rng() * 0.6);
+    const y = mid + Math.sin(ang) * dist * (0.55 + rng() * 0.55);
+    const r = size * (0.04 + rng() * 0.13);
+    const a = 0.06 + rng() * 0.09;
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, `rgba(255,255,255,${a})`);
+    grad.addColorStop(0.6, `rgba(255,255,255,${a * 0.5})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+
+  g.globalCompositeOperation = 'destination-in';
+  const mask = g.createRadialGradient(mid, mid, size * 0.08, mid, mid, mid * 0.98);
+  mask.addColorStop(0, 'rgba(255,255,255,1)');
+  mask.addColorStop(0.65, 'rgba(255,255,255,0.7)');
+  mask.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = mask;
+  g.fillRect(0, 0, size, size);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Procedural spiral galaxy: log-spiral arms of soft dots, warm bulge, faint
+// halo. Squash + tilt give inclination. Drawn once, lives as a far sprite.
+export function makeGalaxyTexture(size, rng, { arms = 2, squash = 0.55, tilt = 0.6 } = {}) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const mid = size / 2;
+  g.translate(mid, mid);
+  g.rotate(tilt);
+  g.scale(1, squash);
+
+  // halo
+  let grad = g.createRadialGradient(0, 0, 0, 0, 0, size * 0.48);
+  grad.addColorStop(0, 'rgba(255,244,228,0.10)');
+  grad.addColorStop(0.5, 'rgba(216,205,255,0.05)');
+  grad.addColorStop(1, 'rgba(216,205,255,0)');
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(0, 0, size * 0.48, 0, Math.PI * 2); g.fill();
+
+  // arms — warm core dots cooling to blue-white at the rim
+  const a0 = size * 0.02, b = 0.265;
+  for (let arm = 0; arm < arms; arm++) {
+    const off = (Math.PI * 2 / arms) * arm;
+    for (let i = 0; i < 950; i++) {
+      const t = i / 950;
+      const th = t * 3.4 * Math.PI;
+      const r = a0 * Math.exp(b * th);
+      if (r > size * 0.46) break;
+      const jr = (rng() + rng() - 1) * (size * 0.016 + t * size * 0.045);
+      const ja = (rng() + rng() - 1) * 0.2 / (0.4 + t);
+      const x = Math.cos(th + off + ja) * (r + jr);
+      const y = Math.sin(th + off + ja) * (r + jr);
+      const dotR = (1 - t) * size * 0.005 + size * 0.0015 + rng() * size * 0.003;
+      const al = (1 - t) * 0.32 + 0.08;
+      const col = t < 0.3 ? '255,238,214' : t < 0.65 ? '232,228,255' : '186,200,255';
+      g.fillStyle = `rgba(${col},${al})`;
+      g.beginPath(); g.arc(x, y, dotR, 0, Math.PI * 2); g.fill();
+    }
+  }
+
+  // bulge
+  grad = g.createRadialGradient(0, 0, 0, 0, 0, size * 0.13);
+  grad.addColorStop(0, 'rgba(255,250,240,0.9)');
+  grad.addColorStop(0.3, 'rgba(255,233,200,0.5)');
+  grad.addColorStop(1, 'rgba(255,224,180,0)');
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(0, 0, size * 0.13, 0, Math.PI * 2); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Pillars of Creation homage: craggy dark columns (normal blending, occludes
+// stars) plus a separate rim-light layer (additive) offset toward the star
+// that "illuminates" them from the upper-left.
+export function makePillarsTextures(size, rng) {
+  const cols = [
+    { x: size * 0.30, top: size * 0.16, w: size * 0.125 },
+    { x: size * 0.56, top: size * 0.32, w: size * 0.095 },
+    { x: size * 0.78, top: size * 0.46, w: size * 0.07 },
+  ];
+
+  // build the blob skeleton once so dark + lit layers share one shape
+  const blobs = [];
+  for (const col of cols) {
+    const steps = 38;
+    for (let i = 0; i < steps; i++) {
+      const t = i / (steps - 1);
+      const y = col.top + t * (size * 1.06 - col.top);
+      const wob = Math.sin(t * 7.5 + col.x * 0.13) * col.w * 0.28;
+      const x = col.x + wob + (rng() - 0.5) * col.w * 0.2;
+      const r = col.w * (0.52 + t * 0.85) * (0.82 + rng() * 0.36);
+      blobs.push({ x, y, r, t });
+    }
+    // craggy crown fingers
+    for (let k = 0; k < 7; k++) {
+      blobs.push({
+        x: col.x + (rng() - 0.5) * col.w * 1.5,
+        y: col.top - rng() * col.w * 1.1,
+        r: col.w * (0.16 + rng() * 0.3),
+        t: 0,
+      });
+    }
+  }
+
+  function maskFades(g) {
+    // dissolve toward bottom and sides so the sprite has no hard edges
+    g.globalCompositeOperation = 'destination-in';
+    let m = g.createLinearGradient(0, 0, 0, size);
+    m.addColorStop(0, 'rgba(255,255,255,1)');
+    m.addColorStop(0.72, 'rgba(255,255,255,0.9)');
+    m.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = m;
+    g.fillRect(0, 0, size, size);
+    m = g.createLinearGradient(0, 0, size, 0);
+    m.addColorStop(0, 'rgba(255,255,255,0)');
+    m.addColorStop(0.16, 'rgba(255,255,255,1)');
+    m.addColorStop(0.86, 'rgba(255,255,255,1)');
+    m.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = m;
+    g.fillRect(0, 0, size, size);
+    g.globalCompositeOperation = 'source-over';
+  }
+
+  // dark layer
+  const darkC = document.createElement('canvas');
+  darkC.width = darkC.height = size;
+  const dg = darkC.getContext('2d');
+  for (const b of blobs) {
+    const grad = dg.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+    grad.addColorStop(0, 'rgba(7,3,16,1)');
+    grad.addColorStop(0.72, 'rgba(7,3,16,0.92)');
+    grad.addColorStop(1, 'rgba(7,3,16,0)');
+    dg.fillStyle = grad;
+    dg.beginPath(); dg.arc(b.x, b.y, b.r, 0, Math.PI * 2); dg.fill();
+  }
+  // erosion bites for cragginess
+  dg.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 70; i++) {
+    const b = blobs[Math.floor(rng() * blobs.length)];
+    const ang = rng() * Math.PI * 2;
+    const x = b.x + Math.cos(ang) * b.r * (0.8 + rng() * 0.4);
+    const y = b.y + Math.sin(ang) * b.r * (0.8 + rng() * 0.4);
+    const r = b.r * (0.15 + rng() * 0.3);
+    const grad = dg.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, 'rgba(0,0,0,0.8)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    dg.fillStyle = grad;
+    dg.beginPath(); dg.arc(x, y, r, 0, Math.PI * 2); dg.fill();
+  }
+  dg.globalCompositeOperation = 'source-over';
+  maskFades(dg);
+
+  // rim-light layer: explicit bright crescents painted on each blob's edge
+  // facing the light (upper-left), strongest near the crowns
+  const litC = document.createElement('canvas');
+  litC.width = litC.height = size;
+  const lg = litC.getContext('2d');
+  const lightAng = Math.atan2(-1, -0.85); // light from upper-left
+  for (const b of blobs) {
+    const strength = 1 - b.t * 0.75; // crowns catch the most light
+    const ex = b.x + Math.cos(lightAng) * b.r * 0.78;
+    const ey = b.y + Math.sin(lightAng) * b.r * 0.78;
+    const rr = b.r * 0.42;
+    const grad = lg.createRadialGradient(ex, ey, 0, ex, ey, rr);
+    grad.addColorStop(0, `rgba(255,214,160,${0.5 * strength})`);
+    grad.addColorStop(0.6, `rgba(255,190,140,${0.26 * strength})`);
+    grad.addColorStop(1, 'rgba(255,190,140,0)');
+    lg.fillStyle = grad;
+    lg.beginPath(); lg.arc(ex, ey, rr, 0, Math.PI * 2); lg.fill();
+  }
+  // carve the rim back so light hugs the silhouette edge
+  lg.globalCompositeOperation = 'destination-out';
+  for (const b of blobs) {
+    const grad = lg.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 0.8);
+    grad.addColorStop(0, 'rgba(0,0,0,0.95)');
+    grad.addColorStop(0.8, 'rgba(0,0,0,0.6)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    lg.fillStyle = grad;
+    lg.beginPath(); lg.arc(b.x, b.y, b.r * 0.8, 0, Math.PI * 2); lg.fill();
+  }
+  lg.globalCompositeOperation = 'source-over';
+  // soft halo over the crowns
+  for (const col of cols) {
+    const grad = lg.createRadialGradient(col.x, col.top, 0, col.x, col.top, col.w * 2.2);
+    grad.addColorStop(0, 'rgba(255,222,170,0.3)');
+    grad.addColorStop(1, 'rgba(255,222,170,0)');
+    lg.fillStyle = grad;
+    lg.beginPath(); lg.arc(col.x, col.top, col.w * 2.2, 0, Math.PI * 2); lg.fill();
+  }
+  maskFades(lg);
+
+  const darkTex = new THREE.CanvasTexture(darkC);
+  const litTex = new THREE.CanvasTexture(litC);
+  darkTex.colorSpace = litTex.colorSpace = THREE.SRGBColorSpace;
+  return { darkTex, litTex };
 }
 
 /* ----------------------------------------------------------------- shaders */
@@ -415,6 +631,65 @@ export function createCosmos({ canvas, env }) {
   ];
   const glowColor = new THREE.Color(0x3b2a86);
 
+  /* ----- deep sky features: galaxies, pillars, emission nebula ----- */
+  // features: sprites with baseOpacity (fade-managed), optional slow spin,
+  // and a minimum quality tier below which they hide.
+  const features = [];
+  const featureTextures = [];
+
+  function addFeature(tex, { pos, scale, opacity, color = 0xffffff, additive = true, spin = 0, minTier = 0, order = 3 }) {
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      color,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    });
+    const s = new THREE.Sprite(mat);
+    s.position.set(...pos);
+    s.scale.set(scale[0], scale[1], 1);
+    s.renderOrder = order;
+    s.userData = { baseOpacity: opacity, spin, minTier };
+    features.push(s);
+    scene.add(s);
+    return s;
+  }
+
+  {
+    // three galaxies, far field, framing the edges away from the text column
+    const gal1 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.8, tilt: 0.4 });
+    const gal2 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.42, tilt: 2.3 });
+    const gal3 = makeGalaxyTexture(256, rng, { arms: 2, squash: 0.13, tilt: 5.8 });
+    featureTextures.push(gal1, gal2, gal3);
+    addFeature(gal1, { pos: [250, 110, -430], scale: [150, 150], opacity: 1.0, spin: 0.004 });
+    addFeature(gal2, { pos: [-285, -120, -440], scale: [105, 105], opacity: 0.9, spin: -0.006, minTier: 1 });
+    addFeature(gal3, { pos: [-300, -15, -455], scale: [52, 52], opacity: 0.6, minTier: 2 });
+
+    // pillars of creation, lower-right midground, lit from upper-left.
+    // bright nebula backdrop first — the dark columns silhouette against it.
+    const { darkTex, litTex } = makePillarsTextures(512, rng);
+    const backTex = makeNebulaTexture(256, rng, 90);
+    const emitTexA = makeNebulaTexture(256, rng, 85);
+    const emitTexB = makeNebulaTexture(256, rng, 70);
+    featureTextures.push(darkTex, litTex, backTex, emitTexA, emitTexB);
+    addFeature(backTex, { pos: [172, -102, -262], scale: [235, 205], opacity: 0.5, color: 0xc08a4a, order: 2 });
+    addFeature(backTex, { pos: [200, -72, -255], scale: [175, 155], opacity: 0.32, color: 0x9c2f6e, order: 2, minTier: 1 });
+    addFeature(litTex, { pos: [186, -118, -212], scale: [132, 166], opacity: 0.95, order: 3 });
+    addFeature(darkTex, { pos: [185, -117, -210], scale: [132, 166], opacity: 0.96, additive: false, order: 4 });
+    // the star that lights them
+    addFeature(heroTexture, { pos: [118, -50, -195], scale: [30, 30], opacity: 0.85, color: 0xffe2b8 });
+
+    // emission nebula, upper-left — Carina-flavoured layered cloud with a
+    // dark lane carving through it
+    addFeature(emitTexA, { pos: [-235, 92, -312], scale: [265, 195], opacity: 0.55, color: 0x2a8a80 });
+    addFeature(emitTexB, { pos: [-208, 76, -300], scale: [175, 140], opacity: 0.5, color: 0xc08a4a, minTier: 1 });
+    addFeature(emitTexA, { pos: [-272, 116, -290], scale: [195, 150], opacity: 0.42, color: 0x9c2f6e });
+    addFeature(dustTextures[1], { pos: [-228, 84, -285], scale: [210, 75], opacity: 0.5, color: 0x0d0820, additive: false, order: 4 });
+    addFeature(heroTexture, { pos: [-218, 88, -280], scale: [22, 22], opacity: 0.8, color: 0xfff2dc });
+    addFeature(heroTexture, { pos: [-248, 70, -275], scale: [13, 13], opacity: 0.7, color: 0xcfd8ff, minTier: 1 });
+  }
+
   /* ----- state ----- */
   let scroll = 0;
   const pointer = { x: 0, y: 0 };
@@ -441,6 +716,7 @@ export function createCosmos({ canvas, env }) {
     starGeo.setDrawRange(0, tier.stars);
     heroGeo.setDrawRange(0, tier.hero);
     dustMeshes.forEach((m, i) => { m.visible = i < tier.dust; });
+    features.forEach((f) => { f.visible = tierIndex >= f.userData.minTier; });
     framesSinceTierChange = 0;
     frameCount = 0;
     frameAccum = 0;
@@ -495,6 +771,13 @@ export function createCosmos({ canvas, env }) {
       if (m.position.y < -190) m.position.y = 190;
       const target = m.userData.baseOpacity * fade;
       if (m.material.opacity !== target) m.material.opacity = target;
+    }
+
+    for (const f of features) {
+      if (!f.visible) continue;
+      if (f.userData.spin) f.material.rotation += f.userData.spin * dt;
+      const target = f.userData.baseOpacity * fade;
+      if (f.material.opacity !== target) f.material.opacity = target;
     }
 
     updateGlow();
@@ -557,6 +840,7 @@ export function createCosmos({ canvas, env }) {
       starUniforms.uTime.value = elapsed;
       heroUniforms.uTime.value = elapsed;
       for (const m of dustMeshes) m.material.opacity = m.userData.baseOpacity;
+      for (const f of features) f.material.opacity = f.userData.baseOpacity;
       camera.position.set(0, -scroll * 11, 60);
       updateGlow();
       renderer.render(scene, camera);
@@ -618,7 +902,8 @@ export function createCosmos({ canvas, env }) {
       dustGeo.dispose();
       [starMat, heroMat, glowMat].forEach((m) => m.dispose());
       dustMeshes.forEach((m) => m.material.dispose());
-      [heroTexture, glowTexture, ...dustTextures].forEach((t) => t.dispose());
+      features.forEach((f) => f.material.dispose());
+      [heroTexture, glowTexture, ...dustTextures, ...featureTextures].forEach((t) => t.dispose());
       renderer.dispose();
     },
   };
