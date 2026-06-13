@@ -19,9 +19,12 @@ function mulberry32(seed) {
 }
 
 const TIERS = [
-  { name: 'low',  dpr: 1.0,  stars: 700,  hero: 10, dust: 5 },
-  { name: 'med',  dpr: 1.35, stars: 1400, hero: 16, dust: 9 },
-  { name: 'high', dpr: 2.0,  stars: 2400, hero: 24, dust: 14 },
+  // `hero` = the only stars that carry diffraction spikes — kept to a small
+  // fraction of the field so spikes read as rare bright point sources (JWST),
+  // not as a decorative sparkle on every star.
+  { name: 'low',  dpr: 1.0,  stars: 700,  hero: 4,  dust: 5 },
+  { name: 'med',  dpr: 1.35, stars: 1400, hero: 7,  dust: 9 },
+  { name: 'high', dpr: 2.0,  stars: 2400, hero: 11, dust: 14 },
 ];
 
 const STAR_COLORS = [
@@ -61,7 +64,11 @@ export function makeSoftCircleTexture(size) {
   return tex;
 }
 
-// JWST signature: six diffraction spikes plus the short horizontal strut pair.
+// JWST signature: the real geometry is SIX primary diffraction spikes from the
+// hexagonal mirror (a vertical pair + four diagonals, 60° apart) plus TWO
+// fainter, shorter horizontal spikes from the secondary-mirror struts. Kept
+// deliberately modest in length + brightness so a spiked star reads as a rare
+// bright point source, never as decoration competing with the nebulae.
 function makeDiffractionTexture(size) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -81,29 +88,30 @@ function makeDiffractionTexture(size) {
     g.restore();
   }
 
-  // six primary spikes (hexagonal mirror), one pair vertical
+  // six primary spikes (hexagonal mirror): vertical pair + four diagonals.
+  // a crisp thin line with a fainter soft halo around it.
   for (let i = 0; i < 3; i++) {
     const a = Math.PI / 2 + i * (Math.PI / 3);
-    spike(a, size * 0.94, size * 0.012, 0.85);
-    spike(a, size * 0.94, size * 0.05, 0.18);
+    spike(a, size * 0.80, size * 0.010, 0.60);
+    spike(a, size * 0.80, size * 0.042, 0.09);
   }
-  // short horizontal strut spikes
-  spike(0, size * 0.46, size * 0.01, 0.6);
-  spike(0, size * 0.46, size * 0.04, 0.14);
+  // two fainter, shorter horizontal strut spikes
+  spike(0, size * 0.38, size * 0.008, 0.30);
+  spike(0, size * 0.38, size * 0.030, 0.07);
 
   // core
-  let grad = g.createRadialGradient(mid, mid, 0, mid, mid, size * 0.16);
+  let grad = g.createRadialGradient(mid, mid, 0, mid, mid, size * 0.15);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.35, 'rgba(255,255,255,0.5)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.45)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = grad;
-  g.beginPath(); g.arc(mid, mid, size * 0.16, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(mid, mid, size * 0.15, 0, Math.PI * 2); g.fill();
 
-  grad = g.createRadialGradient(mid, mid, 0, mid, mid, size * 0.05);
+  grad = g.createRadialGradient(mid, mid, 0, mid, mid, size * 0.045);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = grad;
-  g.beginPath(); g.arc(mid, mid, size * 0.05, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(mid, mid, size * 0.045, 0, Math.PI * 2); g.fill();
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -228,6 +236,32 @@ export function makeGalaxyTexture(size, rng, { arms = 2, squash = 0.55, tilt = 0
   grad.addColorStop(1, 'rgba(255,224,180,0)');
   g.fillStyle = grad;
   g.beginPath(); g.arc(0, 0, size * 0.13, 0, Math.PI * 2); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Elliptical / lenticular galaxy: a smooth squashed glow, bright old-star core
+// fading to a faint halo — no arms. Cheap (one gradient) and reads as a distant
+// galaxy when shrunk far back. `warm` cores are old/red ellipticals.
+export function makeEllipticalGalaxyTexture(size, { squash = 0.7, tilt = 0.3, warm = true } = {}) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const mid = size / 2;
+  g.translate(mid, mid);
+  g.rotate(tilt);
+  g.scale(1, squash);
+  const core = warm ? '255,238,210' : '224,228,255';
+  const halo = warm ? '255,226,196' : '210,214,255';
+  const grad = g.createRadialGradient(0, 0, 0, 0, 0, size * 0.46);
+  grad.addColorStop(0, `rgba(${core},0.95)`);
+  grad.addColorStop(0.16, `rgba(${core},0.5)`);
+  grad.addColorStop(0.45, `rgba(${halo},0.12)`);
+  grad.addColorStop(1, `rgba(${halo},0)`);
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(0, 0, size * 0.46, 0, Math.PI * 2); g.fill();
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -391,10 +425,11 @@ export function createCosmos({ canvas, env }) {
       pos[i * 3 + 2] = -70 - rng() * 280;
       const warm = rng();
       const c = warm < 0.45 ? [1.0, 0.87, 0.66] : warm < 0.8 ? [0.93, 0.93, 1.0] : [0.92, 0.7, 0.84];
-      col[i * 3 + 0] = c[0];
-      col[i * 3 + 1] = c[1];
-      col[i * 3 + 2] = c[2];
-      size[i] = 26 + rng() * 48;
+      const lum = 0.86; // slightly dimmer so spikes don't dominate the nebulae
+      col[i * 3 + 0] = c[0] * lum;
+      col[i * 3 + 1] = c[1] * lum;
+      col[i * 3 + 2] = c[2] * lum;
+      size[i] = 22 + rng() * 40;
       phase[i] = rng() * Math.PI * 2;
       speed[i] = 0.2 + rng() * 0.5;
     }
@@ -430,11 +465,13 @@ export function createCosmos({ canvas, env }) {
     makeDustTexture(256, rng, 52),
   ];
   const DUST_TINTS = [
-    { color: 0x382a7a, w: 0.30 }, // indigo
-    { color: 0x27418f, w: 0.22 }, // deep blue
-    { color: 0x1f6a63, w: 0.16 }, // teal
-    { color: 0x7c1d59, w: 0.22 }, // brand magenta
-    { color: 0x8a6a3a, w: 0.10 }, // JWST amber
+    { color: 0x3a2c8a, w: 0.22 }, // indigo
+    { color: 0x274d9a, w: 0.16 }, // deep blue
+    { color: 0x1f8a7e, w: 0.16 }, // teal
+    { color: 0x9c2f6e, w: 0.18 }, // brand magenta
+    { color: 0x7d5fc6, w: 0.12 }, // violet
+    { color: 0xb0823f, w: 0.10 }, // JWST amber/gold
+    { color: 0x2f9fb0, w: 0.06 }, // cyan
   ];
   function pickTint() {
     let r = rng(), acc = 0;
@@ -511,7 +548,7 @@ export function createCosmos({ canvas, env }) {
   const features = [];
   const featureTextures = [];
 
-  function addFeature(tex, { pos, scale, opacity, color = 0xffffff, additive = true, spin = 0, minTier = 0, order = 3 }) {
+  function addFeature(tex, { pos, scale, opacity, color = 0xffffff, additive = true, spin = 0, minTier = 0, order = 3, rot = 0 }) {
     const mat = new THREE.SpriteMaterial({
       map: tex,
       color,
@@ -519,6 +556,7 @@ export function createCosmos({ canvas, env }) {
       opacity: 0,
       depthWrite: false,
       blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+      rotation: rot,
     });
     const s = new THREE.Sprite(mat);
     s.position.set(...pos);
@@ -531,49 +569,78 @@ export function createCosmos({ canvas, env }) {
   }
 
   {
-    // three galaxies, far field, framing the edges away from the text column
-    const gal1 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.8, tilt: 0.4 });
-    const gal2 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.42, tilt: 2.3 });
-    const gal3 = makeGalaxyTexture(256, rng, { arms: 2, squash: 0.13, tilt: 5.8 });
-    featureTextures.push(gal1, gal2, gal3);
+    // GALAXIES — far field, varied orientation + depth so they feel discovered.
+    // The three base galaxies show on every tier; the extras (a face-on
+    // three-arm spiral, an edge-on disk, two ellipticals) are gated higher so
+    // only stronger GPUs pay for the extra sprites.
+    const gal1 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.8, tilt: 0.4 });   // face-on
+    const gal2 = makeGalaxyTexture(512, rng, { arms: 2, squash: 0.42, tilt: 2.3 });  // inclined
+    const gal3 = makeGalaxyTexture(256, rng, { arms: 2, squash: 0.13, tilt: 5.8 });  // edge-on
+    const gal4 = makeGalaxyTexture(512, rng, { arms: 3, squash: 0.86, tilt: 1.1 });  // face-on 3-arm
+    const gal5 = makeGalaxyTexture(384, rng, { arms: 2, squash: 0.12, tilt: 4.35 }); // edge-on disk
+    const gal6 = makeEllipticalGalaxyTexture(256, { squash: 0.66, tilt: 0.8, warm: true });
+    const gal7 = makeEllipticalGalaxyTexture(220, { squash: 0.82, tilt: 2.1, warm: false });
+    featureTextures.push(gal1, gal2, gal3, gal4, gal5, gal6, gal7);
     addFeature(gal1, { pos: [250, 110, -430], scale: [150, 150], opacity: 1.0, spin: 0.004 });
     addFeature(gal2, { pos: [-285, -120, -440], scale: [105, 105], opacity: 0.9, spin: -0.006, minTier: 1 });
     addFeature(gal3, { pos: [-300, -15, -455], scale: [52, 52], opacity: 0.6, minTier: 2 });
+    addFeature(gal4, { pos: [305, -158, -520], scale: [128, 128], opacity: 0.72, spin: 0.005, minTier: 1 });
+    addFeature(gal5, { pos: [128, 178, -505], scale: [150, 150], opacity: 0.6, spin: 0.0015, minTier: 2 });
+    addFeature(gal6, { pos: [-340, 158, -545], scale: [86, 86], opacity: 0.6, minTier: 1 });
+    addFeature(gal7, { pos: [338, -28, -560], scale: [62, 62], opacity: 0.5, minTier: 2 });
 
-    // soft emission clouds — purely additive wisps in the JWST palette, no dark
-    // silhouettes or hard structures. Scattered around the field for depth, kept
-    // off the central text column and gated on tier so weak GPUs draw fewer.
+    // soft emission clouds — purely additive wisps in a richer JWST palette, no
+    // dark silhouettes or hard structures. Layered in complementary colours so
+    // they bleed and blend (Carina / Cosmic-Cliffs richness), scattered for
+    // depth, kept off the central column, and gated so weak GPUs draw fewer.
     const neb = [
       makeNebulaTexture(256, rng, 88),
       makeNebulaTexture(256, rng, 70),
       makeNebulaTexture(256, rng, 100),
       makeDustTexture(256, rng, 60),
+      makeNebulaTexture(256, rng, 80),
     ];
     featureTextures.push(...neb);
 
-    const TEAL = 0x2a8a80, AMBER = 0xc08a4a, MAGENTA = 0x9c2f6e,
-          INDIGO = 0x4a3a9a, BLUE = 0x2b3f8f, DEEPTEAL = 0x1f6a63, ROSE = 0x7c1d59;
+    // richer, more ethereal palette — luminous teals, cyan, gold, deep magenta,
+    // rose, soft violet (saturated but not neon; additive blending blooms them).
+    const CYAN = 0x33b4c6, TEAL = 0x2a9d8f, DEEPTEAL = 0x1f7a70,
+          GOLD = 0xd9a44e, AMBER = 0xc0824a, MAGENTA = 0xb83080,
+          ROSE = 0xcf6f93, VIOLET = 0x7d5fc6, INDIGO = 0x4a3a9a, BLUE = 0x2b54a4;
 
     const wisps = [
-      // upper-left bloom (Carina-flavoured: teal core, amber + rose layers)
-      { t: 0, pos: [-238, 96, -314], scale: [275, 205], opacity: 0.5,  color: TEAL },
-      { t: 1, pos: [-205, 78, -300], scale: [185, 145], opacity: 0.42, color: AMBER, minTier: 1 },
-      { t: 2, pos: [-278, 120, -296], scale: [205, 158], opacity: 0.36, color: MAGENTA },
-      // lower-right bloom (replaces the old pillars patch — soft, no silhouette)
-      { t: 2, pos: [188, -104, -300], scale: [270, 205], opacity: 0.44, color: INDIGO },
-      { t: 0, pos: [214, -80, -286], scale: [185, 150], opacity: 0.34, color: TEAL, minTier: 1 },
-      { t: 1, pos: [152, -124, -276], scale: [160, 128], opacity: 0.3,  color: AMBER },
-      // scattered depth across the rest of the sky
-      { t: 3, pos: [46, 150, -344],  scale: [250, 165], opacity: 0.28, color: BLUE, minTier: 1 },
-      { t: 2, pos: [-64, -156, -332], scale: [210, 158], opacity: 0.26, color: ROSE },
-      { t: 0, pos: [312, 36, -352],  scale: [170, 150], opacity: 0.28, color: INDIGO, minTier: 1 },
-      { t: 1, pos: [-326, -48, -346], scale: [160, 138], opacity: 0.26, color: DEEPTEAL, minTier: 2 },
-      { t: 3, pos: [96, 64, -360],   scale: [200, 150], opacity: 0.2,  color: BLUE, minTier: 2 },
+      // — upper-left bloom (Carina-flavoured: teal core, gold + magenta + cyan) —
+      { t: 0, pos: [-238, 96, -314], scale: [278, 208], opacity: 0.5,  color: TEAL },
+      { t: 1, pos: [-205, 78, -300], scale: [188, 148], opacity: 0.42, color: GOLD,  minTier: 1 },
+      { t: 2, pos: [-278, 120, -296], scale: [208, 160], opacity: 0.36, color: MAGENTA },
+      { t: 4, pos: [-250, 70, -288], scale: [165, 132], opacity: 0.26, color: CYAN,   minTier: 2 },
+      { t: 3, pos: [-180, 132, -322], scale: [150, 122], opacity: 0.2,  color: VIOLET, minTier: 2 },
+      // — lower-right bloom (indigo body, teal + amber highlights) —
+      { t: 2, pos: [188, -104, -300], scale: [272, 208], opacity: 0.44, color: INDIGO },
+      { t: 0, pos: [214, -80, -286], scale: [188, 152], opacity: 0.34, color: TEAL,  minTier: 1 },
+      { t: 1, pos: [152, -124, -276], scale: [162, 130], opacity: 0.3,  color: AMBER },
+      { t: 4, pos: [205, -120, -292], scale: [150, 122], opacity: 0.22, color: ROSE,  minTier: 2 },
+      // — right-mid rose + gold bloom (Cosmic-Cliffs warmth) —
+      { t: 0, pos: [252, 8, -312],  scale: [202, 160], opacity: 0.3,  color: ROSE, minTier: 1 },
+      { t: 1, pos: [276, 30, -300], scale: [152, 122], opacity: 0.24, color: GOLD, minTier: 2 },
+      // — scattered depth across the rest of the sky —
+      { t: 3, pos: [46, 150, -344],  scale: [252, 168], opacity: 0.28, color: BLUE, minTier: 1 },
+      { t: 2, pos: [-64, -156, -332], scale: [212, 160], opacity: 0.26, color: ROSE },
+      { t: 0, pos: [312, 36, -352],  scale: [172, 152], opacity: 0.28, color: INDIGO, minTier: 1 },
+      { t: 1, pos: [-326, -48, -346], scale: [162, 140], opacity: 0.26, color: DEEPTEAL, minTier: 2 },
+      { t: 3, pos: [96, 64, -360],   scale: [202, 152], opacity: 0.2,  color: BLUE, minTier: 2 },
+      { t: 4, pos: [-20, 168, -366], scale: [262, 152], opacity: 0.17, color: CYAN, minTier: 2 },
+      // — diffuse warm dust lanes (elongated + rotated additive streaks) —
+      { t: 3, pos: [-150, -150, -284], scale: [300, 96], opacity: 0.2,  color: AMBER, minTier: 1, rot: 0.5 },
+      { t: 2, pos: [-120, -120, -296], scale: [222, 90], opacity: 0.16, color: ROSE,  minTier: 2, rot: 0.5 },
+      // — far violet + blue veils for sheer distance —
+      { t: 0, pos: [40, -40, -388],  scale: [322, 222], opacity: 0.16, color: VIOLET, minTier: 2 },
+      { t: 1, pos: [-40, 30, -392],  scale: [282, 202], opacity: 0.14, color: BLUE,   minTier: 2 },
     ];
     for (const w of wisps) {
       addFeature(neb[w.t], {
         pos: w.pos, scale: w.scale, opacity: w.opacity, color: w.color,
-        order: 2, minTier: w.minTier || 0,
+        order: 2, minTier: w.minTier || 0, rot: w.rot || 0,
       });
     }
 
