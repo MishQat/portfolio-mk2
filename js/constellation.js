@@ -9,47 +9,51 @@ const NS = 'http://www.w3.org/2000/svg';
 
 // Free stars: x = % of flow width, y = % of flow height.
 // Anchored stars: centre of `anchor` element + dx (% of flow width) + dy (vh).
+// `name` is the star's label; `major` flags the brighter/named stars that get
+// the larger, more vibrant label tier. Bayer glyphs stay lowercase (α, η, γ…).
 const STARS = [
   // — cord A · the northern fish down to the knot —
-  { id: 'rho',     x: 81,   y: 9.5,  r: 2.2 },
-  { id: 'pi',      x: 69,   y: 15.5, r: 2.0 },
+  { id: 'rho',     x: 81,   y: 9.5,  r: 2.2, name: 'ρ' },
+  { id: 'pi',      x: 69,   y: 15.5, r: 2.0, name: 'π' },
   { id: 'alpherg', anchor: '#verse-card', dx: 4, dy: -22, r: 3.6, gold: true,
-    label: 'Alpherg · η Piscium', labelDx: 14, labelDy: -12 },
-  { id: 'omicron', x: 61,   y: 47,   r: 2.4 },
-  { id: 'psc27',   x: 55.5, y: 60,   r: 1.8 },
+    name: 'Alpherg · η Piscium', major: true, labelDx: 14, labelDy: -12 },
+  { id: 'omicron', x: 61,   y: 47,   r: 2.4, name: 'Torcular · ο Piscium', major: true },
+  { id: 'psc27',   x: 55.5, y: 60,   r: 1.8, name: '27 Psc' },
 
   // — cord B · the Circlet down to the knot —
-  { id: 'omega',   x: 42.5, y: 19,   r: 2.4 },
-  { id: 'delta',   x: 35,   y: 26.5, r: 2.2 },
-  { id: 'epsilon', x: 43,   y: 34.5, r: 2.4 },
-  { id: 'zeta',    x: 37,   y: 45,   r: 2.0 },
-  { id: 'mu',      x: 45.5, y: 53.5, r: 2.2 },
-  { id: 'nu',      x: 44.5, y: 61.5, r: 2.0 },
-  { id: 'xi',      x: 47.5, y: 71,   r: 2.2 },
+  { id: 'omega',   x: 42.5, y: 19,   r: 2.4, name: 'ω Psc', major: true },
+  { id: 'delta',   x: 35,   y: 26.5, r: 2.2, name: 'δ Psc', major: true },
+  { id: 'epsilon', x: 43,   y: 34.5, r: 2.4, name: 'ε Psc', major: true },
+  { id: 'zeta',    x: 37,   y: 45,   r: 2.0, name: 'Revati · ζ Piscium', major: true },
+  { id: 'mu',      x: 45.5, y: 53.5, r: 2.2, name: 'μ' },
+  { id: 'nu',      x: 44.5, y: 61.5, r: 2.0, name: 'ν' },
+  { id: 'xi',      x: 47.5, y: 71,   r: 2.2, name: 'ξ' },
 
-  // — the knot —
-  { id: 'alrescha', anchor: '#alrescha', dx: 0, dy: 0, r: 0 }, // drawn in DOM
+  // — the knot — both cords terminate here. Anchored to the visible knot star
+  // (`.alrescha-star`), NOT the tall gate block, so the V meets cleanly at it.
+  // Labelled in the DOM gate as "Alrescha · α Piscium".
+  { id: 'alrescha', anchor: '.alrescha-star', dx: 0, dy: 0, r: 0 },
 ];
 
-// the Circlet — seven stars ringing the portrait mirror
+// the Circlet — seven stars ringing the portrait mirror (the western fish)
 const CIRCLET = [
-  { id: 'gamma', a: -95,  k: 1.00, r: 2.6 },
-  { id: 'kappa', a: -40,  k: 0.94, r: 2.2 },
-  { id: 'lambda', a: 8,   k: 1.06, r: 2.4 },
-  { id: 'iota',  a: 55,   k: 0.97, r: 2.2 },
-  { id: 'theta', a: 110,  k: 1.05, r: 2.6 },
-  { id: 'psc7',  a: 160,  k: 0.95, r: 1.9 },
-  { id: 'tx',    a: 215,  k: 1.02, r: 2.0 },
+  { id: 'gamma', a: -95,  k: 1.00, r: 2.6, name: 'γ Psc', major: true },
+  { id: 'kappa', a: -40,  k: 0.94, r: 2.2, name: 'κ' },
+  { id: 'lambda', a: 8,   k: 1.06, r: 2.4, name: 'λ' },
+  { id: 'iota',  a: 55,   k: 0.97, r: 2.2, name: 'ι' },
+  { id: 'theta', a: 110,  k: 1.05, r: 2.6, name: 'θ' },
+  { id: 'psc7',  a: 160,  k: 0.95, r: 1.9, name: '7 Psc' },
+  { id: 'tx',    a: 215,  k: 1.02, r: 2.0, name: 'TX Psc' },
 ];
 
 // the northern fish — six stars in a loose ring, top right of the flow
 const NORTH_FISH = [
-  { id: 'tau',  a: -80, k: 1.00, r: 2.5 },
-  { id: 'ups',  a: -20, k: 0.92, r: 2.2 },
-  { id: 'phi',  a: 35,  k: 1.08, r: 2.4 },
-  { id: 'chi',  a: 95,  k: 0.96, r: 2.3 },
-  { id: 'psi1', a: 150, k: 1.04, r: 2.1 },
-  { id: 'psi2', a: 205, k: 0.95, r: 1.9 },
+  { id: 'tau',  a: -80, k: 1.00, r: 2.5, name: 'τ' },
+  { id: 'ups',  a: -20, k: 0.92, r: 2.2, name: 'υ' },
+  { id: 'phi',  a: 35,  k: 1.08, r: 2.4, name: 'φ' },
+  { id: 'chi',  a: 95,  k: 0.96, r: 2.3, name: 'χ' },
+  { id: 'psi1', a: 150, k: 1.04, r: 2.1, name: 'ψ¹' },
+  { id: 'psi2', a: 205, k: 0.95, r: 1.9, name: 'ψ²' },
 ];
 
 // cords by star id; ring exit stars join the chains
@@ -161,8 +165,31 @@ export function initConstellation({ env }) {
       });
       svg.appendChild(c);
       dots.push({ el: c, y: p.y });
-      if (p.def.label) {
-        addLabel(p.x + (p.def.labelDx || 0), p.y + (p.def.labelDy || 0), p.def.label, '#verse', 'start');
+
+      // every star gets a label; placement avoids the star + reads outward
+      if (p.def.name) {
+        let lx, ly, mode;
+        if (p.def.labelDx != null || p.def.labelDy != null) {
+          const left = p.x < W * 0.5;
+          lx = p.x + (p.def.labelDx ?? (left ? 9 : -9));
+          ly = p.y + (p.def.labelDy ?? 4);
+          mode = p.def.labelAnchor || (left ? 'start' : 'end');
+        } else if (p.def.a != null) {
+          // ring star — push the label radially outward from the ring centre
+          const rad = (p.def.a * Math.PI) / 180;
+          const cx = Math.cos(rad), sy = Math.sin(rad);
+          lx = p.x + cx * 15;
+          ly = p.y + sy * 15 + 4;
+          mode = cx < -0.25 ? 'end' : cx > 0.25 ? 'start' : 'middle';
+        } else {
+          const left = p.x < W * 0.5;
+          lx = p.x + (left ? 9 : -9);
+          ly = p.y - 7;
+          mode = left ? 'start' : 'end';
+        }
+        const tier = p.def.major ? 'spine-label--major' : 'spine-label--minor';
+        addLabel(lx, ly, p.def.name, p.def.id === 'alpherg' ? '#verse' : null,
+          mode, 'spine-label--star ' + tier);
       }
     }
 
@@ -186,9 +213,10 @@ export function initConstellation({ env }) {
       paths.push({ el: p, len, y0: box.y, y1: box.y + box.height });
     }
 
-    function addLabel(x, y, text, target, anchorMode) {
+    function addLabel(x, y, text, target, anchorMode, extraCls) {
       const t = el('text', {
-        x, y, class: 'spine-label', 'text-anchor': anchorMode || 'middle',
+        x, y, class: 'spine-label' + (extraCls ? ' ' + extraCls : ''),
+        'text-anchor': anchorMode || 'middle',
       });
       t.textContent = text;
       if (target) {
