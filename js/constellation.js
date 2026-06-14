@@ -152,6 +152,7 @@ export function initConstellation({ env }) {
     addPath(openPath(CORD_B.map((id) => pos.get(id))), 'spine-cord');
 
     // — stars —
+    const labelSpecs = [];
     for (const [, p] of pos) {
       if (!p || !p.def.r) continue;
       if (p.def.gold) {
@@ -166,7 +167,9 @@ export function initConstellation({ env }) {
       svg.appendChild(c);
       dots.push({ el: c, y: p.y });
 
-      // every star gets a label; placement avoids the star + reads outward
+      // every star gets a label; this is its preferred ("primary") placement,
+      // reading outward from the star — the placement pass below keeps it here
+      // unless it would collide with a neighbour, then nudges it clear.
       if (p.def.name) {
         let lx, ly, mode;
         if (p.def.labelDx != null || p.def.labelDy != null) {
@@ -187,11 +190,15 @@ export function initConstellation({ env }) {
           ly = p.y - 7;
           mode = left ? 'start' : 'end';
         }
-        const tier = p.def.major ? 'spine-label--major' : 'spine-label--minor';
-        addLabel(lx, ly, p.def.name, p.def.id === 'alpherg' ? '#verse' : null,
-          mode, 'spine-label--star ' + tier);
+        labelSpecs.push({
+          sx: p.x, sy: p.y, text: p.def.name, major: !!p.def.major,
+          target: p.def.id === 'alpherg' ? '#verse' : null,
+          cls: 'spine-label--star ' + (p.def.major ? 'spine-label--major' : 'spine-label--minor'),
+          primary: { x: lx, y: ly, mode },
+        });
       }
     }
+    placeLabels(labelSpecs);
 
     built = true;
     if (env.reducedMotion) {
@@ -213,6 +220,68 @@ export function initConstellation({ env }) {
       paths.push({ el: p, len, y0: box.y, y1: box.y + box.height });
     }
 
+    // Place every star label, avoiding overlap with already-placed labels (and
+    // the asterism labels, which stay put). Each label keeps its primary spot
+    // if it's clear; otherwise it tries alternates around its star and takes
+    // the first free one (or the least-overlapping fallback). Major/named
+    // labels are placed first so they claim the best spots.
+    function placeLabels(specs) {
+      const placed = [];
+      for (const t of svg.querySelectorAll('.spine-label')) {
+        try { placed.push(t.getBBox()); } catch (e) { /* not yet laid out */ }
+      }
+      specs.sort((a, b) => (b.major - a.major) || (a.sy - b.sy));
+
+      for (const s of specs) {
+        const t = addLabel(s.primary.x, s.primary.y, s.text, s.target, s.primary.mode, s.cls);
+        const cands = [s.primary, ...altCandidates(s.sx, s.sy)];
+        let chosen = null, fallback = null, fallbackArea = Infinity;
+        for (const c of cands) {
+          t.setAttribute('x', c.x); t.setAttribute('y', c.y);
+          t.setAttribute('text-anchor', c.mode);
+          let box;
+          try { box = t.getBBox(); } catch (e) { box = { x: c.x, y: c.y, width: 0, height: 0 }; }
+          if (!placed.some((q) => rectsOverlap(box, q, 2))) { chosen = { c, box }; break; }
+          const area = placed.reduce((sum, q) => sum + overlapArea(box, q), 0);
+          if (area < fallbackArea) { fallbackArea = area; fallback = { c, box }; }
+        }
+        const pick = chosen || fallback;
+        t.setAttribute('x', pick.c.x);
+        t.setAttribute('y', pick.c.y);
+        t.setAttribute('text-anchor', pick.c.mode);
+        placed.push(pick.box);
+        // keep this label's scroll-lit threshold in sync with its final y
+        const last = dots[dots.length - 1];
+        if (last && last.el === t) last.y = pick.c.y;
+      }
+    }
+
+    // candidate offsets around a star, tried in order after its primary spot
+    function altCandidates(sx, sy) {
+      return [
+        { x: sx + 10, y: sy - 9,  mode: 'start' },  // up-right
+        { x: sx - 10, y: sy - 9,  mode: 'end' },    // up-left
+        { x: sx + 10, y: sy + 15, mode: 'start' },  // down-right
+        { x: sx - 10, y: sy + 15, mode: 'end' },    // down-left
+        { x: sx + 15, y: sy + 3,  mode: 'start' },  // right
+        { x: sx - 15, y: sy + 3,  mode: 'end' },    // left
+        { x: sx + 17, y: sy - 18, mode: 'start' },  // far up-right
+        { x: sx - 17, y: sy + 23, mode: 'end' },    // far down-left
+        { x: sx,      y: sy - 16, mode: 'middle' }, // above
+        { x: sx,      y: sy + 23, mode: 'middle' }, // below
+      ];
+    }
+
+    function rectsOverlap(a, b, pad) {
+      return a.x - pad < b.x + b.width && a.x + a.width + pad > b.x &&
+             a.y - pad < b.y + b.height && a.y + a.height + pad > b.y;
+    }
+    function overlapArea(a, b) {
+      const ix = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+      const iy = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+      return ix * iy;
+    }
+
     function addLabel(x, y, text, target, anchorMode, extraCls) {
       const t = el('text', {
         x, y, class: 'spine-label' + (extraCls ? ' ' + extraCls : ''),
@@ -228,6 +297,7 @@ export function initConstellation({ env }) {
       }
       svg.appendChild(t);
       dots.push({ el: t, y });
+      return t;
     }
   }
 
